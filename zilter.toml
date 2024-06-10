@@ -1,0 +1,6 @@
+["zilter"]
+enabled = "receiver"
+userName = ""
+apiKey = ""
+serverHost = ""
+zilterUrl = ""       # full zilter url with https
