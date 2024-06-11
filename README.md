@@ -1,6 +1,5 @@
-# Zilter plugin for Zone-MTA
-> zonemta-plugin-zilter
-> npm: wildduck-zonemta-zilter
+# Zilter plugin for Zone-MTA and Wildduck
+> wildduck-zonemta-zilter
 
 The main plugin code is in the `index.js` file.
 
