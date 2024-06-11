@@ -19,7 +19,7 @@ Add the following to your 'plugins' section of ZoneMTA/Wildduck:
 ```json
 ...
   "plugins": {
-    "modules/zonemta-plugin-zilter": {
+    "modules/wildduck-zonemta-zilter": {
         "enabled": "receiver",
         "userName": "valid zilter username",
         "apiKey": "valid zilter apikey",
