@@ -16,7 +16,7 @@ Configure gelf in the main zone-mta installation. Not here.
 To add the plugin to your ZoneMTA/Wildduck installation.
 Add the given `zilter.toml` to the `config` folder of the installation OR  
 Add the following to your 'plugins' section of ZoneMTA/Wildduck:
-```js
+```json
 ...
   "plugins": {
     "modules/zonemta-plugin-zilter": {
