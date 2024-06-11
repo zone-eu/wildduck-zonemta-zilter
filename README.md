@@ -1,5 +1,6 @@
 # Zilter plugin for Zone-MTA
 > zonemta-plugin-zilter
+> npm: wildduck-zonemta-zilter
 
 The main plugin code is in the `index.js` file.
 
@@ -11,3 +12,19 @@ The only fields that need configurating are:
 
 Logging is done via Gelf.
 Configure gelf in the main zone-mta installation. Not here.
+
+To add the plugin to your ZoneMTA/Wildduck installation.
+Add the given `zilter.toml` to the `config` folder of the installation OR  
+Add the following to your 'plugins' section of ZoneMTA/Wildduck:
+```js
+...
+  "plugins": {
+    "modules/zonemta-plugin-zilter": {
+        "enabled": "receiver",
+        "userName": "valid zilter username",
+        "apiKey": "valid zilter apikey",
+        "serverHost": "your server/vps/machine hostname with http/https"
+    }
+  }
+...
+```

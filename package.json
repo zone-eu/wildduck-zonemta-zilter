@@ -1,7 +1,7 @@
 {
-  "name": "zonemta-plugin-zilter",
+  "name": "wildduck-zonemta-zilter",
   "version": "1.0.0",
-  "description": "Zilter plugin for Zone-MTA",
+  "description": "Zilter plugin for Zone-MTA/Wildduck",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Currently tests are not implemented\" && exit 1"
@@ -15,7 +15,8 @@
     "zone-mta",
     "mta",
     "msa",
-    "smtp"
+    "smtp",
+    "wildduck"
   ],
   "author": "NickOvt",
   "license": "EUPL-1.1+",
@@ -31,5 +32,8 @@
     "eslint": "8.57.0",
     "eslint-config-nodemailer": "1.2.0",
     "eslint-config-prettier": "9.1.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
   }
 }
