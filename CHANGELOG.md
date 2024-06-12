@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.0...v1.0.1) (2024-06-12)
+
+
+### Bug Fixes
+
+* **deps:** Fix version packages. Add missing deps ([#4](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/4)) ([9a7df6a](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/9a7df6afc6c2b85274bc22a6c45f4dac4cb462f1))
+
 ## 1.0.0 (2024-06-11)
 
 
