@@ -25,8 +25,9 @@
   },
   "homepage": "https://github.com/zone-eu/zonemta-plugin-zilter#readme",
   "dependencies": {
-    "undici": "^6.18.2",
-    "zone-mta": "^3.9.6"
+    "randexp": "0.5.3",
+    "undici": "6.18.2",
+    "zone-mta": "3.9.6"
   },
   "devDependencies": {
     "eslint": "8.57.0",
