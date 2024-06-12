@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.1...v1.0.2) (2024-06-12)
+
+
+### Bug Fixes
+
+* **provenance:** fix provenance ([#6](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/6)) ([c8d011f](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/c8d011faa0d07964eb43c977452976a64f0d6967))
+
 ## [1.0.1](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.0...v1.0.1) (2024-06-12)
 
 
