@@ -2,7 +2,7 @@
 
 const undici = require('undici');
 const addressTools = require('zone-mta/lib/address-tools');
-const RandExp = require('randexp');
+const { randomBytes } = require('node:crypto');
 
 module.exports.title = 'Zilter';
 module.exports.init = async app => {
@@ -85,8 +85,7 @@ module.exports.init = async app => {
             });
         }
 
-        const zilterIdRegexGen = /[A-Za-z0-9]{8}/;
-        const zilterId = new RandExp(zilterIdRegexGen).gen(); // with every request generate id (does not have to be unique, but can be useful)
+        const zilterId = randomBytes(8).toString('hex');
 
         // Call Zilter with required params
         try {
