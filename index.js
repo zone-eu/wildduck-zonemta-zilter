@@ -10,7 +10,12 @@ module.exports.init = async app => {
         // check with zilter
         // if incorrect do app.reject()
 
-        const { userName, apiKey, serverHost, zilterUrl } = app.config;
+        const { userName, apiKey, serverHost, zilterUrl, logIncomingData } = app.config;
+
+        if (logIncomingData) {
+            // log available data
+            app.logger.info('Incoming data: ', envelope, messageinfo);
+        }
 
         if (!userName || !apiKey) {
             // if either username or apikey missing skip check
@@ -87,16 +92,19 @@ module.exports.init = async app => {
 
         const zilterId = randomBytes(8).toString('hex');
 
+        const originhost = serverHost || (envelope.originhost || '').replace('[', '').replace(']', '');
+        const transhost = (envelope.transhost || '').replace('[', '').replace(']', '') || serverHost || originhost || '';
+
         // Call Zilter with required params
         try {
             const res = await undici.request(zilterUrl, {
                 dispatcher: undici.getGlobalDispatcher(),
                 method: 'POST',
                 body: JSON.stringify({
-                    host: serverHost || (envelope.originhost || '').replace('[', '').replace(']', ''), // Originhost is a string that includes [] (array as a string literal)
+                    host: originhost, // Originhost is a string that includes [] (array as a string literal)
                     'zilter-id': zilterId, // Random ID
                     sender, // Sender User ID (uid) in the system
-                    helo: (envelope.transhost || '').replace('[', '').replace(']', ''), // Transhost is a string that includes [] (array as a string literal)
+                    helo: transhost, // Transhost is a string that includes [] (array as a string literal)
                     'authenticated-sender': authenticatedUserAddress || authenticatedUser, // Sender user email
                     'queue-id': envelope.id,
                     'rfc822-size': messageSize,
@@ -114,10 +122,10 @@ module.exports.init = async app => {
                     short_message: '[ZONE-MTA-ZILTER] Zilter request unauthorized',
                     _plugin_status: 'error',
                     _status_code: res.statusCode,
-                    _host: serverHost || (envelope.originhost || '').replace('[', '').replace(']', ''),
+                    _host: originhost,
                     _zilter_id: zilterId,
                     _sender: sender,
-                    _helo: (envelope.transhost || '').replace('[', '').replace(']', ''),
+                    _helo: transhost,
                     _authenticated_sender: authenticatedUserAddress || authenticatedUser,
                     _queue_id: envelope.id,
                     _rfc822_size: messageSize,
@@ -133,10 +141,10 @@ module.exports.init = async app => {
                 app.loggelf({
                     short_message: '[ZONE-MTA-ZILTER] Email did not pass check',
                     _plugin_status: 'info',
-                    _host: serverHost || (envelope.originhost || '').replace('[', '').replace(']', ''),
+                    _host: originhost,
                     _zilter_id: zilterId,
                     _sender: sender,
-                    _helo: (envelope.transhost || '').replace('[', '').replace(']', ''),
+                    _helo: transhost,
                     _authenticated_sender: authenticatedUserAddress || authenticatedUser,
                     _queue_id: envelope.id,
                     _rfc822_size: messageSize,
@@ -150,10 +158,10 @@ module.exports.init = async app => {
                 app.loggelf({
                     short_message: '[ZONE-MTA-ZILTER] Email passed check',
                     _plugin_status: 'info',
-                    _host: serverHost || (envelope.originhost || '').replace('[', '').replace(']', ''),
+                    _host: originhost,
                     _zilter_id: zilterId,
                     _sender: sender,
-                    _helo: (envelope.transhost || '').replace('[', '').replace(']', ''),
+                    _helo: transhost,
                     _authenticated_sender: authenticatedUserAddress || authenticatedUser,
                     _queue_id: envelope.id,
                     _rfc822_size: messageSize,
@@ -169,10 +177,10 @@ module.exports.init = async app => {
                 short_message: '[ZONE-MTA-ZILTER] Zilter request error',
                 _plugin_status: 'error',
                 _error: err.message,
-                _host: serverHost || (envelope.originhost || '').replace('[', '').replace(']', ''),
+                _host: originhost,
                 _zilter_id: zilterId,
                 _sender: sender,
-                _helo: (envelope.transhost || '').replace('[', '').replace(']', ''),
+                _helo: transhost,
                 _authenticated_sender: authenticatedUserAddress || authenticatedUser,
                 _queue_id: envelope.id,
                 _rfc822_size: messageSize,
