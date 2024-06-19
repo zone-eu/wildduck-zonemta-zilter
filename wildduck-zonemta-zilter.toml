@@ -1,0 +1,7 @@
+["modules/wildduck-zonemta-zilter"] # load plugin from node modules
+enabled = "receiver"
+userName = ""
+apiKey = ""
+serverHost = ""
+zilterUrl = ""          # full zilter url with https
+logIncomingData = false

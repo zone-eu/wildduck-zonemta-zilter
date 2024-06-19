@@ -2,7 +2,7 @@
 
 const undici = require('undici');
 const addressTools = require('zone-mta/lib/address-tools');
-const RandExp = require('randexp');
+const { randomBytes } = require('node:crypto');
 
 module.exports.title = 'Zilter';
 module.exports.init = async app => {
@@ -10,12 +10,17 @@ module.exports.init = async app => {
         // check with zilter
         // if incorrect do app.reject()
 
-        const { userName, apiKey, serverHost, zilterUrl } = app.config;
+        const { userName, apiKey, serverHost, zilterUrl, logIncomingData } = app.config;
+
+        if (logIncomingData) {
+            // log available data
+            app.logger.info('Incoming data: ', envelope, messageinfo, envelope.headers.getList());
+        }
 
         if (!userName || !apiKey) {
             // if either username or apikey missing skip check
             app.loggelf({
-                short_message: '[ZONE-MTA-ZILTER] auth missing',
+                short_message: '[WILDDUCK-ZONEMTA-ZILTER] auth missing',
                 _plugin_status: 'error',
                 _error: 'Username and/or API key missing from config in order to auth to Zilter.'
             });
@@ -25,7 +30,7 @@ module.exports.init = async app => {
         if (!serverHost) {
             // log that we are missing serverhost and we're using the originhost instead
             app.loggelf({
-                short_message: '[ZONE-MTA-ZILTER] serverhost missing',
+                short_message: '[WILDDUCK-ZONEMTA-ZILTER] serverhost missing',
                 _plugin_status: 'warning',
                 _error: 'Serverhost config missing, using envelope originhost instead. Check config.'
             });
@@ -33,7 +38,7 @@ module.exports.init = async app => {
 
         if (!zilterUrl) {
             app.loggelf({
-                short_message: '[ZONE-MTA-ZILTER] zilter url missing',
+                short_message: '[WILDDUCK-ZONEMTA-ZILTER] zilter url missing',
                 _plugin_status: 'error',
                 _error: 'Zilter URL is missing, add it. Aborting check'
             });
@@ -60,7 +65,7 @@ module.exports.init = async app => {
             }
         } catch (err) {
             app.loggelf({
-                short_message: '[ZONE-MTA-ZILTER] DB error',
+                short_message: '[WILDDUCK-ZONEMTA-ZILTER] DB error',
                 _plugin_status: 'error',
                 _error: 'DB error. Check DB connection, or collection names, or filter params.',
                 _authenticated_user: authenticatedUser
@@ -85,8 +90,12 @@ module.exports.init = async app => {
             });
         }
 
-        const zilterIdRegexGen = /[A-Za-z0-9]{8}/;
-        const zilterId = new RandExp(zilterIdRegexGen).gen(); // with every request generate id (does not have to be unique, but can be useful)
+        const messageHeadersListJsonString = JSON.stringify(messageHeadersList);
+
+        const zilterId = randomBytes(8).toString('hex');
+
+        const originhost = serverHost || (envelope.originhost || '').replace('[', '').replace(']', '');
+        const transhost = (envelope.transhost || '').replace('[', '').replace(']', '') || originhost;
 
         // Call Zilter with required params
         try {
@@ -94,10 +103,10 @@ module.exports.init = async app => {
                 dispatcher: undici.getGlobalDispatcher(),
                 method: 'POST',
                 body: JSON.stringify({
-                    host: serverHost || (envelope.originhost || '').replace('[', '').replace(']', ''), // Originhost is a string that includes [] (array as a string literal)
+                    host: originhost, // Originhost is a string that includes [] (array as a string literal)
                     'zilter-id': zilterId, // Random ID
                     sender, // Sender User ID (uid) in the system
-                    helo: (envelope.transhost || '').replace('[', '').replace(']', ''), // Transhost is a string that includes [] (array as a string literal)
+                    helo: transhost, // Transhost is a string that includes [] (array as a string literal)
                     'authenticated-sender': authenticatedUserAddress || authenticatedUser, // Sender user email
                     'queue-id': envelope.id,
                     'rfc822-size': messageSize,
@@ -112,19 +121,19 @@ module.exports.init = async app => {
             if (res.statusCode === 401) {
                 // unauthorized Zilter
                 app.loggelf({
-                    short_message: '[ZONE-MTA-ZILTER] Zilter request unauthorized',
+                    short_message: '[WILDDUCK-ZONEMTA-ZILTER] Zilter request unauthorized',
                     _plugin_status: 'error',
                     _status_code: res.statusCode,
-                    _host: serverHost || (envelope.originhost || '').replace('[', '').replace(']', ''),
+                    _host: originhost,
                     _zilter_id: zilterId,
                     _sender: sender,
-                    _helo: (envelope.transhost || '').replace('[', '').replace(']', ''),
+                    _helo: transhost,
                     _authenticated_sender: authenticatedUserAddress || authenticatedUser,
                     _queue_id: envelope.id,
                     _rfc822_size: messageSize,
                     _from: envelope.from,
                     _rcpt: envelope.to,
-                    _headers: messageHeadersList
+                    _headers: messageHeadersListJsonString
                 });
             }
 
@@ -132,54 +141,54 @@ module.exports.init = async app => {
                 // not accepted
                 passEmail = false;
                 app.loggelf({
-                    short_message: '[ZONE-MTA-ZILTER] Email did not pass check',
+                    short_message: '[WILDDUCK-ZONEMTA-ZILTER] Email did not pass check',
                     _plugin_status: 'info',
-                    _host: serverHost || (envelope.originhost || '').replace('[', '').replace(']', ''),
+                    _host: originhost,
                     _zilter_id: zilterId,
                     _sender: sender,
-                    _helo: (envelope.transhost || '').replace('[', '').replace(']', ''),
+                    _helo: transhost,
                     _authenticated_sender: authenticatedUserAddress || authenticatedUser,
                     _queue_id: envelope.id,
                     _rfc822_size: messageSize,
                     _from: envelope.from,
                     _rcpt: envelope.to,
-                    _headers: messageHeadersList,
+                    _headers: messageHeadersListJsonString,
                     _zilter_action: resBodyJson.action,
                     _status_code: res.statusCode
                 });
             } else if (resBodyJson.action && resBodyJson.action === 'accept') {
                 app.loggelf({
-                    short_message: '[ZONE-MTA-ZILTER] Email passed check',
+                    short_message: '[WILDDUCK-ZONEMTA-ZILTER] Email passed check',
                     _plugin_status: 'info',
-                    _host: serverHost || (envelope.originhost || '').replace('[', '').replace(']', ''),
+                    _host: originhost,
                     _zilter_id: zilterId,
                     _sender: sender,
-                    _helo: (envelope.transhost || '').replace('[', '').replace(']', ''),
+                    _helo: transhost,
                     _authenticated_sender: authenticatedUserAddress || authenticatedUser,
                     _queue_id: envelope.id,
                     _rfc822_size: messageSize,
                     _from: envelope.from,
                     _rcpt: envelope.to,
-                    _headers: messageHeadersList,
+                    _headers: messageHeadersListJsonString,
                     _zilter_action: resBodyJson.action,
                     _status_code: res.statusCode
                 });
             }
         } catch (err) {
             app.loggelf({
-                short_message: '[ZONE-MTA-ZILTER] Zilter request error',
+                short_message: '[WILDDUCK-ZONEMTA-ZILTER] Zilter request error',
                 _plugin_status: 'error',
                 _error: err.message,
-                _host: serverHost || (envelope.originhost || '').replace('[', '').replace(']', ''),
+                _host: originhost,
                 _zilter_id: zilterId,
                 _sender: sender,
-                _helo: (envelope.transhost || '').replace('[', '').replace(']', ''),
+                _helo: transhost,
                 _authenticated_sender: authenticatedUserAddress || authenticatedUser,
                 _queue_id: envelope.id,
                 _rfc822_size: messageSize,
                 _from: envelope.from,
                 _rcpt: envelope.to,
-                _headers: messageHeadersList
+                _headers: messageHeadersListJsonString
             });
         }
 
