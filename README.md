@@ -23,7 +23,7 @@ Add the following to your `'plugins'` section of ZoneMTA/Wildduck:
         "enabled": "receiver",
         "userName": "valid zilter username",
         "apiKey": "valid zilter apikey",
-        "serverHost": "your server/vps/machine hostname, withou http/https",
+        "serverHost": "your server/vps/machine hostname, without http/https",
         "logIncomingData": false
     }
   }
