@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.4](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.3...v1.0.4) (2024-08-15)
+
+
+### Bug Fixes
+
+* **email-parse:** Fixes. Allow for `username[email] login to be parsed correctly` ([#10](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/10)) ([915bcda](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/915bcda5ada233dbd8c462185d8ec888f677e2e5))
+
 ## [1.0.3](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.2...v1.0.3) (2024-06-19)
 
 
