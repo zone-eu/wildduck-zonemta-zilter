@@ -51,7 +51,7 @@ module.exports.init = async app => {
 
         let sender;
 
-        const smtpUsernamePatternRegex = /\[([^\]]+)]/;
+        const smtpUsernamePatternRegex = /\[([^\]]+)]/gi;
 
         try {
             if (envelope.userId && authenticatedUser) {
