@@ -51,8 +51,27 @@ module.exports.init = async app => {
 
         let sender;
 
+        const smtpUsernamePatternRegex = /\[([^\]]+)]/;
+
         try {
-            if (authenticatedUser.includes('@')) {
+            if (envelope.userId && authenticatedUser) {
+                // have both userId and user. Probably webmail. Set sender to the userId straight away
+                // first check though that the userId is a 24 length hex
+
+                if (envelope.userId.length === 24) {
+                    sender = envelope.userId.toString();
+                }
+            } else if (authenticatedUser.includes('@')) {
+                if (smtpUsernamePatternRegex.test(authenticatedUser)) {
+                    // SMTP username[email]
+
+                    let match = authenticatedUser.match(smtpUsernamePatternRegex);
+                    if (match && match[1]) {
+                        authenticatedUser = match[1]; // is email address
+                    }
+                }
+
+                // SMTP email aadress login
                 // seems to be an email, no need to resolve, straight acquire the user id from addresses
                 const addressData = await app.db.users.collection('addresses').findOne({ addrview: addressTools.normalizeAddress(authenticatedUser) });
                 sender = addressData.user.toString();
