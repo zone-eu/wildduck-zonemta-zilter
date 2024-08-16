@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.5](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.4...v1.0.5) (2024-08-16)
+
+
+### Bug Fixes
+
+* **headers:** Header parsing fix ([#12](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/12)) ([b12185d](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/b12185d1099b8b30d54199f7cb7ff7c53abd5900))
+
 ## [1.0.4](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.3...v1.0.4) (2024-08-15)
 
 
