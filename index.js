@@ -103,9 +103,12 @@ module.exports.init = async app => {
 
         // Change headers to the format that Zilter will accept
         for (const headerObj of envelope.headers.getList()) {
+            // Get header Key and Value from line
+            const splittedByFirstColumn = headerObj.line.split(/:(.*)/s);
+
             messageHeadersList.push({
-                name: headerObj.key,
-                value: headerObj.line
+                name: splittedByFirstColumn[0].trim(), // Header key
+                value: splittedByFirstColumn[1].trim() // Rest of string (i.e actual header value)
             });
         }
 
