@@ -4,6 +4,30 @@ const undici = require('undici');
 const addressTools = require('zone-mta/lib/address-tools');
 const { randomBytes } = require('node:crypto');
 
+const loggelfForEveryUser = (app, short_message, data) => {
+    if (data._rcpt.length > 1) {
+        // send for every recipient
+
+        for (const rcpt of data._rcpt) {
+            app.loggelf({
+                short_message,
+                ...data,
+                _rcpt: rcpt
+            });
+        }
+    } else {
+        if (!data.hasOwnProperty('_rcpt')) {
+            data._rcpt = [];
+        }
+
+        app.loggelf({
+            short_message,
+            ...data,
+            _rcpt: data._rcpt[0] || '' // single recipient
+        });
+    }
+};
+
 module.exports.title = 'Zilter';
 module.exports.init = async app => {
     app.addHook('message:queue', async (envelope, messageinfo) => {
@@ -101,18 +125,23 @@ module.exports.init = async app => {
 
         const messageHeadersList = [];
 
+        const allHeadersParsed = {};
+
         // Change headers to the format that Zilter will accept
         for (const headerObj of envelope.headers.getList()) {
             // Get header Key and Value from line
             const splittedByFirstColumn = headerObj.line.split(/:(.*)/s);
 
+            const headerKey = splittedByFirstColumn[0].trim();
+            const headerValue = splittedByFirstColumn[1].trim();
+
+            allHeadersParsed[headerKey] = headerValue;
+
             messageHeadersList.push({
-                name: splittedByFirstColumn[0].trim(), // Header key
-                value: splittedByFirstColumn[1].trim() // Rest of string (i.e actual header value)
+                name: headerKey,
+                value: headerValue
             });
         }
-
-        const messageHeadersListJsonString = JSON.stringify(messageHeadersList);
 
         const zilterId = randomBytes(8).toString('hex');
 
@@ -142,75 +171,74 @@ module.exports.init = async app => {
 
             if (res.statusCode === 401) {
                 // unauthorized Zilter
-                app.loggelf({
-                    short_message: '[WILDDUCK-ZONEMTA-ZILTER] Zilter request unauthorized',
-                    _plugin_status: 'error',
-                    _status_code: res.statusCode,
-                    _host: originhost,
-                    _zilter_id: zilterId,
+                loggelfForEveryUser(app, '[WILDDUCK-ZONEMTA-ZILTER] Zilter request unauthorized', {
                     _sender: sender,
-                    _helo: transhost,
                     _authenticated_sender: authenticatedUserAddress || authenticatedUser,
-                    _queue_id: envelope.id,
                     _rfc822_size: messageSize,
-                    _from: envelope.from,
+                    _app: 'zilter',
                     _rcpt: envelope.to,
-                    _headers: messageHeadersListJsonString
+                    _from: envelope.from,
+                    _header_from: allHeadersParsed.From,
+                    _header_to: allHeadersParsed.To,
+                    _message_id: allHeadersParsed['Message-ID'].replace('<', '').replace('>', ''),
+                    _subject: allHeadersParsed.Subject,
+                    level: 5,
+                    _zilter_error: 'Unauthorized error 401',
+                    _ip: envelope.origin
                 });
             }
 
             if (resBodyJson.action && resBodyJson.action !== 'accept') {
                 // not accepted
                 passEmail = false;
-                app.loggelf({
-                    short_message: '[WILDDUCK-ZONEMTA-ZILTER] Email did not pass check',
-                    _plugin_status: 'info',
-                    _host: originhost,
-                    _zilter_id: zilterId,
+                loggelfForEveryUser(app, '[WILDDUCK-ZONEMTA-ZILTER] Email did not pass check', {
                     _sender: sender,
-                    _helo: transhost,
                     _authenticated_sender: authenticatedUserAddress || authenticatedUser,
-                    _queue_id: envelope.id,
                     _rfc822_size: messageSize,
-                    _from: envelope.from,
+                    _app: 'zilter',
                     _rcpt: envelope.to,
-                    _headers: messageHeadersListJsonString,
-                    _zilter_action: resBodyJson.action,
-                    _status_code: res.statusCode
+                    _from: envelope.from,
+                    _header_from: allHeadersParsed.From,
+                    _header_to: allHeadersParsed.To,
+                    _message_id: allHeadersParsed['Message-ID'].replace('<', '').replace('>', ''),
+                    _subject: allHeadersParsed.Subject,
+                    level: 5,
+                    _passed: 'N',
+                    _action: resBodyJson.action,
+                    _ip: envelope.origin
                 });
             } else if (resBodyJson.action && resBodyJson.action === 'accept') {
-                app.loggelf({
-                    short_message: '[WILDDUCK-ZONEMTA-ZILTER] Email passed check',
-                    _plugin_status: 'info',
-                    _host: originhost,
-                    _zilter_id: zilterId,
+                loggelfForEveryUser(app, '[WILDDUCK-ZONEMTA-ZILTER] Email passed check', {
                     _sender: sender,
-                    _helo: transhost,
                     _authenticated_sender: authenticatedUserAddress || authenticatedUser,
-                    _queue_id: envelope.id,
                     _rfc822_size: messageSize,
-                    _from: envelope.from,
+                    _app: 'zilter',
                     _rcpt: envelope.to,
-                    _headers: messageHeadersListJsonString,
-                    _zilter_action: resBodyJson.action,
-                    _status_code: res.statusCode
+                    _from: envelope.from,
+                    _header_from: allHeadersParsed.From,
+                    _header_to: allHeadersParsed.To,
+                    _message_id: allHeadersParsed['Message-ID'].replace('<', '').replace('>', ''),
+                    _subject: allHeadersParsed.Subject,
+                    level: 5,
+                    _passed: 'Y',
+                    _ip: envelope.origin
                 });
             }
         } catch (err) {
-            app.loggelf({
-                short_message: '[WILDDUCK-ZONEMTA-ZILTER] Zilter request error',
-                _plugin_status: 'error',
-                _error: err.message,
-                _host: originhost,
-                _zilter_id: zilterId,
+            loggelfForEveryUser(app, '[WILDDUCK-ZONEMTA-ZILTER] Zilter request error', {
                 _sender: sender,
-                _helo: transhost,
                 _authenticated_sender: authenticatedUserAddress || authenticatedUser,
-                _queue_id: envelope.id,
                 _rfc822_size: messageSize,
-                _from: envelope.from,
+                _app: 'zilter',
                 _rcpt: envelope.to,
-                _headers: messageHeadersListJsonString
+                _from: envelope.from,
+                _header_from: allHeadersParsed.From,
+                _header_to: allHeadersParsed.To,
+                _message_id: allHeadersParsed['Message-ID'].replace('<', '').replace('>', ''),
+                _subject: allHeadersParsed.Subject,
+                level: 5,
+                _zilter_error: err.message,
+                _ip: envelope.origin
             });
         }
 
