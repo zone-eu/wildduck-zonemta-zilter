@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.6](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.5...v1.0.6) (2024-08-21)
+
+
+### Bug Fixes
+
+* **graylog:** Add better graylog logging ([#14](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/14)) ([d9129f5](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/d9129f5746e257a7dc4932e11a63701921a4757e))
+
 ## [1.0.5](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.4...v1.0.5) (2024-08-16)
 
 
