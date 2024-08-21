@@ -3,16 +3,22 @@
 const undici = require('undici');
 const addressTools = require('zone-mta/lib/address-tools');
 const { randomBytes } = require('node:crypto');
+const os = require('os');
 
 const loggelfForEveryUser = (app, short_message, data) => {
+    const timestamp = Date.now() / 1000;
+    const hostname = os.hostname();
+
     if (data._rcpt.length > 1) {
         // send for every recipient
 
         for (const rcpt of data._rcpt) {
-            app.loggelf({
+            app.gelf.emit('gelf.log', {
                 short_message,
                 ...data,
-                _rcpt: rcpt
+                _rcpt: rcpt,
+                timestamp,
+                host: hostname
             });
         }
     } else {
@@ -20,10 +26,12 @@ const loggelfForEveryUser = (app, short_message, data) => {
             data._rcpt = [];
         }
 
-        app.loggelf({
+        app.gelf.emit('gelf.log', {
             short_message,
             ...data,
-            _rcpt: data._rcpt[0] || '' // single recipient
+            _rcpt: data._rcpt[0] || '', // single recipient
+            timestamp,
+            host: hostname
         });
     }
 };
@@ -148,6 +156,8 @@ module.exports.init = async app => {
         const originhost = serverHost || (envelope.originhost || '').replace('[', '').replace(']', '');
         const transhost = (envelope.transhost || '').replace('[', '').replace(']', '') || originhost;
 
+        const subject = messageinfo.subject || 'no subject';
+
         // Call Zilter with required params
         try {
             const res = await undici.request(zilterUrl, {
@@ -171,7 +181,7 @@ module.exports.init = async app => {
 
             if (res.statusCode === 401) {
                 // unauthorized Zilter
-                loggelfForEveryUser(app, '[WILDDUCK-ZONEMTA-ZILTER] Zilter request unauthorized', {
+                loggelfForEveryUser(app, subject, {
                     _sender: sender,
                     _authenticated_sender: authenticatedUserAddress || authenticatedUser,
                     _rfc822_size: messageSize,
@@ -181,7 +191,7 @@ module.exports.init = async app => {
                     _header_from: allHeadersParsed.From,
                     _header_to: allHeadersParsed.To,
                     _message_id: allHeadersParsed['Message-ID'].replace('<', '').replace('>', ''),
-                    _subject: allHeadersParsed.Subject,
+                    _subject: subject,
                     level: 5,
                     _zilter_error: 'Unauthorized error 401',
                     _ip: envelope.origin
@@ -191,7 +201,7 @@ module.exports.init = async app => {
             if (resBodyJson.action && resBodyJson.action !== 'accept') {
                 // not accepted
                 passEmail = false;
-                loggelfForEveryUser(app, '[WILDDUCK-ZONEMTA-ZILTER] Email did not pass check', {
+                loggelfForEveryUser(app, subject, {
                     _sender: sender,
                     _authenticated_sender: authenticatedUserAddress || authenticatedUser,
                     _rfc822_size: messageSize,
@@ -201,14 +211,14 @@ module.exports.init = async app => {
                     _header_from: allHeadersParsed.From,
                     _header_to: allHeadersParsed.To,
                     _message_id: allHeadersParsed['Message-ID'].replace('<', '').replace('>', ''),
-                    _subject: allHeadersParsed.Subject,
+                    _subject: subject,
                     level: 5,
                     _passed: 'N',
                     _action: resBodyJson.action,
                     _ip: envelope.origin
                 });
             } else if (resBodyJson.action && resBodyJson.action === 'accept') {
-                loggelfForEveryUser(app, '[WILDDUCK-ZONEMTA-ZILTER] Email passed check', {
+                loggelfForEveryUser(app, subject, {
                     _sender: sender,
                     _authenticated_sender: authenticatedUserAddress || authenticatedUser,
                     _rfc822_size: messageSize,
@@ -218,14 +228,14 @@ module.exports.init = async app => {
                     _header_from: allHeadersParsed.From,
                     _header_to: allHeadersParsed.To,
                     _message_id: allHeadersParsed['Message-ID'].replace('<', '').replace('>', ''),
-                    _subject: allHeadersParsed.Subject,
+                    _subject: subject,
                     level: 5,
                     _passed: 'Y',
                     _ip: envelope.origin
                 });
             }
         } catch (err) {
-            loggelfForEveryUser(app, '[WILDDUCK-ZONEMTA-ZILTER] Zilter request error', {
+            loggelfForEveryUser(app, subject, {
                 _sender: sender,
                 _authenticated_sender: authenticatedUserAddress || authenticatedUser,
                 _rfc822_size: messageSize,
@@ -235,7 +245,7 @@ module.exports.init = async app => {
                 _header_from: allHeadersParsed.From,
                 _header_to: allHeadersParsed.To,
                 _message_id: allHeadersParsed['Message-ID'].replace('<', '').replace('>', ''),
-                _subject: allHeadersParsed.Subject,
+                _subject: subject,
                 level: 5,
                 _zilter_error: err.message,
                 _ip: envelope.origin
