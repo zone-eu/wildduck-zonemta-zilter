@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/zone-eu/wildduck-zonemta-zilter#readme",
   "dependencies": {
+    "libmime": "5.3.5",
     "undici": "6.18.2",
     "zone-mta": "3.9.6"
   },

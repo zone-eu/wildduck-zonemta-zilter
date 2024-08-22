@@ -2,8 +2,39 @@
 
 const undici = require('undici');
 const addressTools = require('zone-mta/lib/address-tools');
+const libmime = require('libmime');
 const { randomBytes } = require('node:crypto');
 const os = require('os');
+
+function decodeHeaderLineIntoKeyValuePair(headerLine) {
+    let decodedHeaderStr;
+    let headerSeparatorPos = headerLine.indexOf(':');
+    if (headerSeparatorPos < 0) {
+        return headerLine;
+    }
+
+    let headerKey = headerLine.substring(0, headerSeparatorPos);
+    let headerValue = headerLine.substring(headerSeparatorPos + 1);
+
+    try {
+        decodedHeaderStr = libmime.decodeWords(headerValue);
+    } catch (err) {
+        // keep the value as is
+    }
+
+    return [headerKey.trim(), decodedHeaderStr.trim()];
+}
+
+const loggelf = (app, message) => {
+    Object.keys(message).forEach(key => {
+        if (!message[key]) {
+            // remove falsy keys (undefined, null, false, "", 0)
+            delete message[key];
+        }
+    });
+
+    app.gelf.emit('gelf.log', message);
+};
 
 const loggelfForEveryUser = (app, short_message, data) => {
     const timestamp = Date.now() / 1000;
@@ -13,7 +44,7 @@ const loggelfForEveryUser = (app, short_message, data) => {
         // send for every recipient
 
         for (const rcpt of data._rcpt) {
-            app.gelf.emit('gelf.log', {
+            loggelf(app, {
                 short_message,
                 ...data,
                 _rcpt: rcpt,
@@ -26,7 +57,7 @@ const loggelfForEveryUser = (app, short_message, data) => {
             data._rcpt = [];
         }
 
-        app.gelf.emit('gelf.log', {
+        loggelf(app, {
             short_message,
             ...data,
             _rcpt: data._rcpt[0] || '', // single recipient
@@ -138,10 +169,7 @@ module.exports.init = async app => {
         // Change headers to the format that Zilter will accept
         for (const headerObj of envelope.headers.getList()) {
             // Get header Key and Value from line
-            const splittedByFirstColumn = headerObj.line.split(/:(.*)/s);
-
-            const headerKey = splittedByFirstColumn[0].trim();
-            const headerValue = splittedByFirstColumn[1].trim();
+            const [headerKey, headerValue] = decodeHeaderLineIntoKeyValuePair(headerObj.line);
 
             allHeadersParsed[headerKey] = headerValue;
 
