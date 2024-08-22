@@ -157,6 +157,7 @@ module.exports.init = async app => {
         const transhost = (envelope.transhost || '').replace('[', '').replace(']', '') || originhost;
 
         const subject = messageinfo.subject || 'no subject';
+        const messageIdHeaderVal = allHeadersParsed['Message-ID']?.replace('<', '').replace('>', '');
 
         // Call Zilter with required params
         try {
@@ -190,7 +191,7 @@ module.exports.init = async app => {
                     _from: envelope.from,
                     _header_from: allHeadersParsed.From,
                     _header_to: allHeadersParsed.To,
-                    _message_id: allHeadersParsed['Message-ID'].replace('<', '').replace('>', ''),
+                    _message_id: messageIdHeaderVal,
                     _subject: subject,
                     level: 5,
                     _zilter_error: 'Unauthorized error 401',
@@ -210,7 +211,7 @@ module.exports.init = async app => {
                     _from: envelope.from,
                     _header_from: allHeadersParsed.From,
                     _header_to: allHeadersParsed.To,
-                    _message_id: allHeadersParsed['Message-ID'].replace('<', '').replace('>', ''),
+                    _message_id: messageIdHeaderVal,
                     _subject: subject,
                     level: 5,
                     _passed: 'N',
@@ -227,7 +228,7 @@ module.exports.init = async app => {
                     _from: envelope.from,
                     _header_from: allHeadersParsed.From,
                     _header_to: allHeadersParsed.To,
-                    _message_id: allHeadersParsed['Message-ID'].replace('<', '').replace('>', ''),
+                    _message_id: messageIdHeaderVal,
                     _subject: subject,
                     level: 5,
                     _passed: 'Y',
@@ -244,7 +245,7 @@ module.exports.init = async app => {
                 _from: envelope.from,
                 _header_from: allHeadersParsed.From,
                 _header_to: allHeadersParsed.To,
-                _message_id: allHeadersParsed['Message-ID'].replace('<', '').replace('>', ''),
+                _message_id: messageIdHeaderVal,
                 _subject: subject,
                 level: 5,
                 _zilter_error: err.message,
