@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.8](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.7...v1.0.8) (2024-08-22)
+
+
+### Bug Fixes
+
+* **messageIdHeader-replace:** ZMS-166 MessageID header safe replace ([#18](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/18)) ([929d094](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/929d094ecd6984cc2a1047f8f8ce651dedc113ad))
+
 ## [1.0.7](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.6...v1.0.7) (2024-08-21)
 
 
