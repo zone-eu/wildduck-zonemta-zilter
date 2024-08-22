@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.9](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.8...v1.0.9) (2024-08-22)
+
+
+### Bug Fixes
+
+* **headers-graylog:** ZMS-166 ([#20](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/20)) ([3b6fadf](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/3b6fadfd59edd7c08f784aabbc68caa8c3b07d1d))
+
 ## [1.0.8](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.7...v1.0.8) (2024-08-22)
 
 
