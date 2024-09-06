@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.10](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.9...v1.0.10) (2024-09-06)
+
+
+### Bug Fixes
+
+* **logging:** set max subject length in graylog logs ZMS-173 ([#22](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/22)) ([c566491](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/c56649149345fcc0f4744f6ce3ba746bdf205552))
+
 ## [1.0.9](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.8...v1.0.9) (2024-08-22)
 
 
