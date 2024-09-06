@@ -3,5 +3,6 @@ enabled = "receiver"
 userName = ""
 apiKey = ""
 serverHost = ""
-zilterUrl = ""          # full zilter url with https
+zilterUrl = ""           # full zilter url with https
 logIncomingData = false
+subjectMaxLength = 16000

@@ -73,7 +73,14 @@ module.exports.init = async app => {
         // check with zilter
         // if incorrect do app.reject()
 
+        const SUBJECT_MAX_ALLOWED_LENGTH = 16000;
         const { userName, apiKey, serverHost, zilterUrl, logIncomingData } = app.config;
+
+        let subjectMaxLength = app.config.subjectMaxLength;
+
+        if (!subjectMaxLength || subjectMaxLength > SUBJECT_MAX_ALLOWED_LENGTH) {
+            subjectMaxLength = SUBJECT_MAX_ALLOWED_LENGTH;
+        }
 
         if (logIncomingData) {
             // log available data
@@ -184,7 +191,8 @@ module.exports.init = async app => {
         const originhost = serverHost || (envelope.originhost || '').replace('[', '').replace(']', '');
         const transhost = (envelope.transhost || '').replace('[', '').replace(']', '') || originhost;
 
-        const subject = messageinfo.subject || 'no subject';
+        let subject = messageinfo.subject || 'no subject';
+        subject = subject.substring(0, subjectMaxLength);
         const messageIdHeaderVal = allHeadersParsed['Message-ID']?.replace('<', '').replace('>', '');
 
         // Call Zilter with required params
