@@ -20,6 +20,7 @@ function decodeHeaderLineIntoKeyValuePair(headerLine) {
         decodedHeaderStr = libmime.decodeWords(headerValue);
     } catch (err) {
         // keep the value as is
+        decodedHeaderStr = headerValue;
     }
 
     return [headerKey.trim(), decodedHeaderStr.trim()];
