@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.11](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.10...v1.0.11) (2024-10-14)
+
+
+### Bug Fixes
+
+* **decoderHeaderStr:** fix issue that decodedHeaderStr is undefined if decodeWords fails ZMS-179 ([#24](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/24)) ([c25d46e](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/c25d46e9c195c7e6fa0ad9a79a1764de23bd380a))
+
 ## [1.0.10](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.9...v1.0.10) (2024-09-06)
 
 
