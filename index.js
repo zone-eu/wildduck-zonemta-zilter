@@ -169,6 +169,7 @@ module.exports.init = async app => {
         const messageSize = envelope.headers.build().length + envelope.bodySize; // RFC822 size (size of Headers + Body)
 
         let passEmail = true;
+        let isTempFail = false;
 
         const messageHeadersList = [];
 
@@ -237,6 +238,10 @@ module.exports.init = async app => {
             }
 
             if (resBodyJson.action && resBodyJson.action !== 'accept') {
+                if (resBodyJson.action === 'tempfail') {
+                    isTempFail = true;
+                }
+
                 // not accepted
                 passEmail = false;
                 loggelfForEveryUser(app, subject, {
@@ -292,7 +297,10 @@ module.exports.init = async app => {
 
         if (!passEmail) {
             // rejected
-            throw app.reject(envelope, 'banned', messageinfo, '550 SMTP ACCESS DENIED - ABUSE PREVENTION HAS TRIGGERED A BAN DUE TO REACHED RATE LIMITS.');
+            if (isTempFail) {
+                throw app.reject(envelope, 'tempfail', messageinfo, 'Temporary error, please try again later.');
+            }
+            throw app.reject(envelope, 'banned', messageinfo, '550 SMTP ACCESS DENIED - ABUSE PREVENTION HAS TRIGGERED A BAN.');
         }
 
         return;
