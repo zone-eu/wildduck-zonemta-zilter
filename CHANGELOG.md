@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.12](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.11...v1.0.12) (2024-10-28)
+
+
+### Bug Fixes
+
+* **tempfail-as-default:** ZMS-183 ([#28](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/28)) ([0ba0723](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/0ba072326e4bd48cbb4399553c841a0b63f2ce93))
+* **zilter-tempfail:** in case of Zilter tempfail show error ([#26](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/26)) ([08147c8](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/08147c8c206ed5f3d16ce6d6ade0fa3e0c6df98e))
+
 ## [1.0.11](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.10...v1.0.11) (2024-10-14)
 
 
