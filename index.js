@@ -168,8 +168,8 @@ module.exports.init = async app => {
 
         const messageSize = envelope.headers.build().length + envelope.bodySize; // RFC822 size (size of Headers + Body)
 
-        let passEmail = true;
-        let isTempFail = true;
+        let passEmail = true; // by default pass email
+        let isTempFail = true; // by default tempfail
 
         const messageHeadersList = [];
 
@@ -219,7 +219,7 @@ module.exports.init = async app => {
             const resBodyJson = await res.body.json();
 
             if (res.statusCode === 401) {
-                // unauthorized Zilter
+                // unauthorized Zilter, default to tempfail error return
                 loggelfForEveryUser(app, subject, {
                     _sender: sender,
                     _authenticated_sender: authenticatedUserAddress || authenticatedUser,
@@ -239,10 +239,10 @@ module.exports.init = async app => {
 
             if (resBodyJson.action && resBodyJson.action !== 'accept') {
                 if (resBodyJson.action !== 'tempfail') {
-                    isTempFail = false;
+                    isTempFail = false; // not a tempfail error
                 }
 
-                // not accepted
+                // not accepted, email did not pass checks
                 passEmail = false;
                 loggelfForEveryUser(app, subject, {
                     _sender: sender,
@@ -261,6 +261,8 @@ module.exports.init = async app => {
                     _ip: envelope.origin
                 });
             } else if (resBodyJson.action && resBodyJson.action === 'accept') {
+                // accepted, so not a tempfail
+                isTempFail = false;
                 loggelfForEveryUser(app, subject, {
                     _sender: sender,
                     _authenticated_sender: authenticatedUserAddress || authenticatedUser,
@@ -278,6 +280,7 @@ module.exports.init = async app => {
                 });
             }
         } catch (err) {
+            // error, default to tempfail
             loggelfForEveryUser(app, subject, {
                 _sender: sender,
                 _authenticated_sender: authenticatedUserAddress || authenticatedUser,
