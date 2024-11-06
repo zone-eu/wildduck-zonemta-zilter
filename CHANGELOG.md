@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.13](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.12...v1.0.13) (2024-11-06)
+
+
+### Bug Fixes
+
+* **tempfail-issue:** fix logical error with tempfail ([#29](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/29)) ([5664441](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/566444169bcce342453f0e565f7b8fd8bc9277bb))
+
 ## [1.0.12](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.11...v1.0.12) (2024-10-28)
 
 
