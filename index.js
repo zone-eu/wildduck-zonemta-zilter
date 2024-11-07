@@ -320,11 +320,7 @@ module.exports.init = async app => {
                 envelope,
                 'banned',
                 messageinfo,
-                `550 ${
-                    zilterResponse && zilterResponse.symbols
-                        ? `SMTP MESSAGE - SENDING TO RECIPIENTS BLOCKED, REASON: ${zilterResponse.symbols.REJECT_REASON}`
-                        : 'SMTP MESSAGE - SENDING TO RECIPIENTS BLOCKED'
-                }`
+                `550 ${zilterResponse && zilterResponse.symbols ? `SENDING BLOCKED, REASON: ${zilterResponse.symbols.REJECT_REASON}` : 'SENDING BLOCKED'}`
             );
         }
 
