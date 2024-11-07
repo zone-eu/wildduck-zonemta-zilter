@@ -193,7 +193,7 @@ module.exports.init = async app => {
         const originhost = serverHost || (envelope.originhost || '').replace('[', '').replace(']', '');
         const transhost = (envelope.transhost || '').replace('[', '').replace(']', '') || originhost;
 
-        let subject = messageinfo.subject || 'no subject';
+        let subject = messageinfo.subject || allHeadersParsed.Subject || 'no subject';
         subject = subject.substring(0, subjectMaxLength);
         const messageIdHeaderVal = allHeadersParsed['Message-ID']?.replace('<', '').replace('>', '');
 
@@ -218,6 +218,11 @@ module.exports.init = async app => {
             });
             const resBodyJson = await res.body.json();
 
+            const debugJson = { ...resBodyJson };
+
+            ['SENDER', 'SENDER_GROUP', 'WEBHOOK'].forEach(sym => delete debugJson.symbols[sym]);
+            ['sender', 'action', 'zilter-id', 'client'].forEach(el => delete debugJson[el]);
+
             if (res.statusCode === 401) {
                 // unauthorized Zilter, default to tempfail error return
                 loggelfForEveryUser(app, subject, {
@@ -233,7 +238,8 @@ module.exports.init = async app => {
                     _subject: subject,
                     level: 5,
                     _zilter_error: 'Unauthorized error 401',
-                    _ip: envelope.origin
+                    _ip: envelope.origin,
+                    _debug_json: debugJson
                 });
             }
 
@@ -258,7 +264,8 @@ module.exports.init = async app => {
                     level: 5,
                     _passed: 'N',
                     _action: resBodyJson.action,
-                    _ip: envelope.origin
+                    _ip: envelope.origin,
+                    _debug_json: debugJson
                 });
             } else if (resBodyJson.action && resBodyJson.action === 'accept') {
                 // accepted, so not a tempfail
@@ -276,7 +283,8 @@ module.exports.init = async app => {
                     _subject: subject,
                     level: 5,
                     _passed: 'Y',
-                    _ip: envelope.origin
+                    _ip: envelope.origin,
+                    _debug_json: debugJson
                 });
             }
         } catch (err) {
