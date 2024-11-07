@@ -220,7 +220,11 @@ module.exports.init = async app => {
 
             const debugJson = { ...resBodyJson };
 
-            ['SENDER', 'SENDER_GROUP', 'WEBHOOK'].forEach(sym => delete debugJson.symbols[sym]);
+            ['SENDER', 'SENDER_GROUP', 'WEBHOOK'].forEach(sym => {
+                if (debugJson.symbols) {
+                    delete debugJson.symbols[sym];
+                }
+            });
             ['sender', 'action', 'zilter-id', 'client'].forEach(el => delete debugJson[el]);
 
             if (res.statusCode === 401) {
