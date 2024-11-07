@@ -197,6 +197,8 @@ module.exports.init = async app => {
         subject = subject.substring(0, subjectMaxLength);
         const messageIdHeaderVal = allHeadersParsed['Message-ID']?.replace('<', '').replace('>', '');
 
+        let zilterResponse;
+
         // Call Zilter with required params
         try {
             const res = await undici.request(zilterUrl, {
@@ -219,6 +221,8 @@ module.exports.init = async app => {
             const resBodyJson = await res.body.json();
 
             const debugJson = { ...resBodyJson };
+
+            zilterResponse = resBodyJson;
 
             ['SENDER', 'SENDER_GROUP', 'WEBHOOK'].forEach(sym => {
                 if (debugJson.symbols) {
@@ -312,7 +316,12 @@ module.exports.init = async app => {
 
         if (!passEmail) {
             // rejected
-            throw app.reject(envelope, 'banned', messageinfo, '550 SMTP ACCESS DENIED - ABUSE PREVENTION HAS TRIGGERED A BAN.');
+            throw app.reject(
+                envelope,
+                'banned',
+                messageinfo,
+                `550 ${zilterResponse && zilterResponse.symbols ? `SENDING BLOCKED, REASON: ${zilterResponse.symbols.REJECT_REASON}` : 'SENDING BLOCKED'}`
+            );
         }
 
         if (isTempFail) {
