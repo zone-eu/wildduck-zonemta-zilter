@@ -1,6 +1,6 @@
 {
   "name": "wildduck-zonemta-zilter",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "description": "Zilter plugin for Zone-MTA/Wildduck",
   "main": "index.js",
   "scripts": {
