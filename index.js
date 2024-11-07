@@ -315,7 +315,7 @@ module.exports.init = async app => {
         }
 
         if (!passEmail) {
-            // rejected
+            // sending email rejected
             throw app.reject(
                 envelope,
                 'banned',
