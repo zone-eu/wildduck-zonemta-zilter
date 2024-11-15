@@ -69,13 +69,17 @@ const loggelfForEveryUser = (app, short_message, data) => {
 };
 
 const normalizeAddress = (authenticatedUser, returnAsObject) => {
-    let user = authenticatedUser.substr(0, authenticatedUser.lastIndexOf('@')).normalize('NFC').toLowerCase().trim();
-    let domain = authenticatedUser.substr(authenticatedUser.lastIndexOf('@') + 1);
-    let addr = user.trim() + '@' + addressTools.normalizeDomain(domain);
+    const user = authenticatedUser.substr(0, authenticatedUser.lastIndexOf('@')).normalize('NFC').toLowerCase().trim();
+    const domain = authenticatedUser.substr(authenticatedUser.lastIndexOf('@') + 1);
+    const addr = user.trim() + '@' + addressTools.normalizeDomain(domain);
+    const unameview = user.trim().replace(/\./g, '');
+    const addrview = unameview + '@' + domain;
 
     if (returnAsObject) {
         return {
             user,
+            unameview,
+            addrview,
             domain,
             addr
         };
@@ -162,12 +166,12 @@ module.exports.init = async app => {
                 // check for alias
                 let aliasData = await app.db.users.collection('domainaliases').findOne({ alias: addrObj.domain });
 
-                let addrview = authenticatedUser; // default to addrview query as-is without alias
+                let addrview = addrObj.addrview; // default to addrview query as-is without alias
 
                 if (aliasData) {
                     // got alias data
                     const aliasDomain = aliasData.domain;
-                    addrview = addrObj.user + '@' + aliasDomain; // set new query addrview
+                    addrview = addrObj.unameview + '@' + aliasDomain; // set new query addrview
                 }
 
                 const addressData = await app.db.users.collection('addresses').findOne({ addrview });
