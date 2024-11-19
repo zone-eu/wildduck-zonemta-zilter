@@ -192,6 +192,7 @@ module.exports.init = async app => {
                 _err_json: JSON.stringify(err)
             });
             // throw app.reject(envelope, 'tempfail', messageinfo, 'Temporary error, please try again later.');
+            // return from plugin
             return;
         }
 
