@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.18](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.17...v1.0.18) (2024-11-19)
+
+
+### Bug Fixes
+
+* **db-error-return:** ZMS-189-1 ([#42](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/42)) ([07978d0](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/07978d01fb9fd8b84b5894ba2dd91d402f4f377e))
+
 ## [1.0.17](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.16...v1.0.17) (2024-11-15)
 
 
