@@ -68,6 +68,25 @@ const loggelfForEveryUser = (app, short_message, data) => {
     }
 };
 
+const normalizeAddress = (authenticatedUser, returnAsObject) => {
+    const user = authenticatedUser.substr(0, authenticatedUser.lastIndexOf('@')).normalize('NFC').toLowerCase().trim();
+    const domain = authenticatedUser.substr(authenticatedUser.lastIndexOf('@') + 1);
+    const addr = user.trim() + '@' + addressTools.normalizeDomain(domain);
+    const unameview = user.trim().replace(/\./g, '');
+    const addrview = unameview + '@' + domain;
+
+    if (returnAsObject) {
+        return {
+            user,
+            unameview,
+            addrview,
+            domain,
+            addr
+        };
+    }
+    return addr;
+};
+
 module.exports.title = 'Zilter';
 module.exports.init = async app => {
     app.addHook('message:queue', async (envelope, messageinfo) => {
@@ -124,15 +143,11 @@ module.exports.init = async app => {
 
         const smtpUsernamePatternRegex = /\[([^\]]+)]/;
 
-        try {
-            if (envelope.userId && authenticatedUser) {
-                // have both userId and user. Probably webmail. Set sender to the userId straight away
-                // first check though that the userId is a 24 length hex
+        let passEmail = true; // by default pass email
+        let isTempFail = true; // by default tempfail
 
-                if (envelope.userId.length === 24) {
-                    sender = envelope.userId.toString();
-                }
-            } else if (authenticatedUser.includes('@')) {
+        try {
+            if (authenticatedUser.includes('@')) {
                 if (smtpUsernamePatternRegex.test(authenticatedUser)) {
                     // SMTP username[email]
 
@@ -144,7 +159,22 @@ module.exports.init = async app => {
 
                 // SMTP email aadress login
                 // seems to be an email, no need to resolve, straight acquire the user id from addresses
-                const addressData = await app.db.users.collection('addresses').findOne({ addrview: addressTools.normalizeAddress(authenticatedUser) });
+                // normalize address
+                let addrObj = normalizeAddress(authenticatedUser, true);
+                authenticatedUser = addrObj.addr;
+
+                // check for alias
+                let aliasData = await app.db.users.collection('domainaliases').findOne({ alias: addrObj.domain });
+
+                let addrview = addrObj.addrview; // default to addrview query as-is without alias
+
+                if (aliasData) {
+                    // got alias data
+                    const aliasDomain = aliasData.domain;
+                    addrview = addrObj.unameview + '@' + aliasDomain; // set new query addrview
+                }
+
+                const addressData = await app.db.users.collection('addresses').findOne({ addrview });
                 sender = addressData.user.toString();
             } else {
                 // current user authenticated via the username, resolve to email
@@ -158,8 +188,11 @@ module.exports.init = async app => {
                 short_message: '[WILDDUCK-ZONEMTA-ZILTER] DB error',
                 _plugin_status: 'error',
                 _error: 'DB error. Check DB connection, or collection names, or filter params.',
-                _authenticated_user: authenticatedUser
+                _authenticated_user: authenticatedUser,
+                _err_json: JSON.stringify(err)
             });
+            // throw app.reject(envelope, 'tempfail', messageinfo, 'Temporary error, please try again later.');
+            // return from plugin
             return;
         }
 
@@ -167,9 +200,6 @@ module.exports.init = async app => {
         const userBase64 = Buffer.from(`${userName}:${apiKey}`).toString('base64'); // authorization header
 
         const messageSize = envelope.headers.build().length + envelope.bodySize; // RFC822 size (size of Headers + Body)
-
-        let passEmail = true; // by default pass email
-        let isTempFail = true; // by default tempfail
 
         const messageHeadersList = [];
 
@@ -315,7 +345,7 @@ module.exports.init = async app => {
         }
 
         if (!passEmail) {
-            // rejected
+            // sending e-mail rejected
             throw app.reject(
                 envelope,
                 'banned',
