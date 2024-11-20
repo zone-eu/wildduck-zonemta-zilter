@@ -1,8 +1,8 @@
 'use strict';
 
 const undici = require('undici');
-const addressTools = require('zone-mta/lib/address-tools');
 const libmime = require('libmime');
+const { toUnicode } = require('punycode');
 const { randomBytes } = require('node:crypto');
 const os = require('os');
 
@@ -68,14 +68,31 @@ const loggelfForEveryUser = (app, short_message, data) => {
     }
 };
 
-const normalizeAddress = (authenticatedUser, returnAsObject) => {
-    const user = authenticatedUser.substr(0, authenticatedUser.lastIndexOf('@')).normalize('NFC').toLowerCase().trim();
-    const domain = authenticatedUser.substr(authenticatedUser.lastIndexOf('@') + 1);
-    const addr = user.trim() + '@' + addressTools.normalizeDomain(domain);
-    const unameview = user.trim().replace(/\./g, '');
+const normalizeDomain = domain => {
+    domain = (domain || '').toLowerCase().trim();
+    try {
+        if (/^xn--/.test(domain)) {
+            domain = toUnicode(domain).normalize('NFC').toLowerCase().trim();
+        }
+    } catch (E) {
+        // ignore
+    }
+
+    return domain;
+};
+
+const normalizeAddress = (address, asObject) => {
+    if (!address) {
+        return address || '';
+    }
+
+    const user = address.substr(0, address.lastIndexOf('@')).normalize('NFC').toLowerCase().trim();
+    const domain = normalizeDomain(address.substr(address.lastIndexOf('@') + 1));
+    const addr = user + '@' + domain;
+    const unameview = user.replace(/\./g, '');
     const addrview = unameview + '@' + domain;
 
-    if (returnAsObject) {
+    if (asObject) {
         return {
             user,
             unameview,
@@ -178,7 +195,7 @@ module.exports.init = async app => {
                 sender = addressData.user.toString();
             } else {
                 // current user authenticated via the username, resolve to email
-                authenticatedUser = authenticatedUser.replace(/\./g, '').toLowerCase(); // Normalize username to unameview
+                authenticatedUser = authenticatedUser.replace(/\./g, '').normalize('NFC').toLowerCase().trim(); // Normalize username to unameview
                 const userData = await app.db.users.collection('users').findOne({ unameview: authenticatedUser });
                 authenticatedUserAddress = userData.address; // main address of the user
                 sender = userData._id.toString(); // ID of the user
@@ -189,10 +206,8 @@ module.exports.init = async app => {
                 _plugin_status: 'error',
                 _error: 'DB error. Check DB connection, or collection names, or filter params.',
                 _authenticated_user: authenticatedUser,
-                _err_json: JSON.stringify(err)
+                _err_json: err.toString()
             });
-            // throw app.reject(envelope, 'tempfail', messageinfo, 'Temporary error, please try again later.');
-            // return from plugin
             return;
         }
 
