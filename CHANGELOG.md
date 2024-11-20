@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.19](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.18...v1.0.19) (2024-11-20)
+
+
+### Bug Fixes
+
+* **deps-normalization-punycode:** ZMS-189-2 ([#44](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/44)) ([90f58ed](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/90f58ed84210cee2a117d273a4dd0cac5f80d562))
+
 ## [1.0.18](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.17...v1.0.18) (2024-11-19)
 
 
