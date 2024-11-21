@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.20](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.19...v1.0.20) (2024-11-21)
+
+
+### Bug Fixes
+
+* **normalization&logging:** ZMS-189-3 ([#46](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/46)) ([7dd6f5c](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/7dd6f5c190fad820d9b375c11b7c6017855a345f))
+
 ## [1.0.19](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.18...v1.0.19) (2024-11-20)
 
 
