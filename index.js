@@ -4,7 +4,6 @@ const undici = require('undici');
 const libmime = require('libmime');
 const { toUnicode } = require('punycode');
 const { randomBytes } = require('node:crypto');
-const os = require('os');
 
 function decodeHeaderLineIntoKeyValuePair(headerLine) {
     let decodedHeaderStr;
@@ -26,31 +25,15 @@ function decodeHeaderLineIntoKeyValuePair(headerLine) {
     return [headerKey.trim(), decodedHeaderStr.trim()];
 }
 
-const loggelf = (app, message) => {
-    Object.keys(message).forEach(key => {
-        if (!message[key]) {
-            // remove falsy keys (undefined, null, false, "", 0)
-            delete message[key];
-        }
-    });
-
-    app.gelf.emit('gelf.log', message);
-};
-
 const loggelfForEveryUser = (app, short_message, data) => {
-    const timestamp = Date.now() / 1000;
-    const hostname = os.hostname();
-
     if (data._rcpt.length > 1) {
         // send for every recipient
 
         for (const rcpt of data._rcpt) {
-            loggelf(app, {
+            app.loggelf({
                 short_message,
                 ...data,
-                _rcpt: rcpt,
-                timestamp,
-                host: hostname
+                _rcpt: rcpt
             });
         }
     } else {
@@ -58,12 +41,10 @@ const loggelfForEveryUser = (app, short_message, data) => {
             data._rcpt = [];
         }
 
-        loggelf(app, {
+        app.loggelf({
             short_message,
             ...data,
-            _rcpt: data._rcpt[0] || '', // single recipient
-            timestamp,
-            host: hostname
+            _rcpt: data._rcpt[0] || '' // single recipient
         });
     }
 };
@@ -86,11 +67,16 @@ const normalizeAddress = (address, asObject) => {
         return address || '';
     }
 
-    const user = address.substr(0, address.lastIndexOf('@')).normalize('NFC').toLowerCase().trim();
-    const domain = normalizeDomain(address.substr(address.lastIndexOf('@') + 1));
-    const addr = user + '@' + domain;
-    const unameview = user.replace(/\./g, '');
-    const addrview = unameview + '@' + domain;
+    const user = address
+        .substr(0, address.lastIndexOf('@'))
+        .normalize('NFC')
+        .toLowerCase()
+        .replace(/\+[^@]*$/, '')
+        .trim(); // get username from email, normalize it to NFC UTF-8, remove everything after plus sign, trim spaces
+    const domain = normalizeDomain(address.substr(address.lastIndexOf('@') + 1)); // normalize domain
+    const addr = user + '@' + domain; // actual user address
+    const unameview = user.replace(/\./g, ''); // remove dots
+    const addrview = unameview + '@' + domain; // address view
 
     if (asObject) {
         return {
