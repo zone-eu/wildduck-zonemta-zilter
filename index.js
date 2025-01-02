@@ -232,17 +232,16 @@ module.exports.init = async app => {
 
         // Call Zilter with required params
         try {
-            const agent = new RetryAgent(
-                new Agent({ keepAliveTimeout: app.config.keepAliveTimeout || 5000, keepAliveMaxTimeout: app.config.keepAliveMaxTimeout || 600e3 }),
-                {
-                    maxRetries: app.config.maxRetries || 3,
-                    minTimeout: app.config.minRetryTimeout || 100,
-                    maxTimeout: app.config.maxRetryTimeout || 300,
-                    timeoutFactor: app.config.timeoutFactor || 1.5
-                }
-            );
+            // Create Undici RetryAgent to retry requests on common errors
+            const { keepAliveTimeout, keepAliveMaxTimeout, maxRetries, minRetryTimeout, maxRetryTimeout, timeoutFactor } = app.config;
+            const agent = new RetryAgent(new Agent({ keepAliveTimeout: keepAliveTimeout || 5000, keepAliveMaxTimeout: keepAliveMaxTimeout || 600e3 }), {
+                maxRetries: maxRetries || 3,
+                minTimeout: minRetryTimeout || 100,
+                maxTimeout: maxRetryTimeout || 300,
+                timeoutFactor: timeoutFactor || 1.5
+            });
             const res = await request(zilterUrl, {
-                dispatcher: agent,
+                dispatcher: agent, // use RetryAgent so in case of request fail - retry
                 method: 'POST',
                 body: JSON.stringify({
                     host: originhost, // Originhost is a string that includes [] (array as a string literal)
@@ -250,8 +249,8 @@ module.exports.init = async app => {
                     sender, // Sender User ID (uid) in the system
                     helo: transhost, // Transhost is a string that includes [] (array as a string literal)
                     'authenticated-sender': authenticatedUserAddress || authenticatedUser, // Sender user email
-                    'queue-id': envelope.id,
-                    'rfc822-size': messageSize,
+                    'queue-id': envelope.id, // Queue ID of the envelope of the message
+                    'rfc822-size': messageSize, // Size of the raw RFC822-compatible e-mail
                     from: envelope.from,
                     rcpt: envelope.to,
                     headers: messageHeadersList
