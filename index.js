@@ -1,7 +1,7 @@
 'use strict';
 
-const undici = require('undici');
-const libmime = require('libmime');
+const { request, RetryAgent, Agent } = require('undici');
+const { decodeWords } = require('libmime');
 const { toUnicode } = require('punycode');
 const { randomBytes } = require('node:crypto');
 
@@ -16,7 +16,7 @@ function decodeHeaderLineIntoKeyValuePair(headerLine) {
     let headerValue = headerLine.substring(headerSeparatorPos + 1);
 
     try {
-        decodedHeaderStr = libmime.decodeWords(headerValue);
+        decodedHeaderStr = decodeWords(headerValue);
     } catch (err) {
         // keep the value as is
         decodedHeaderStr = headerValue;
@@ -232,8 +232,17 @@ module.exports.init = async app => {
 
         // Call Zilter with required params
         try {
-            const res = await undici.request(zilterUrl, {
-                dispatcher: undici.getGlobalDispatcher(),
+            const agent = new RetryAgent(
+                new Agent({ keepAliveTimeout: app.config.keepAliveTimeout || 5000, keepAliveMaxTimeout: app.config.keepAliveMaxTimeout || 5000 }),
+                {
+                    maxRetries: app.config.maxRetries || 3,
+                    minTimeout: app.config.minRetryTimeout || 100,
+                    maxTimeout: app.config.maxRetryTimeout || 300,
+                    timeoutFactor: app.config.timeoutFactor || 1.5
+                }
+            );
+            const res = await request(zilterUrl, {
+                dispatcher: agent,
                 method: 'POST',
                 body: JSON.stringify({
                     host: originhost, // Originhost is a string that includes [] (array as a string literal)
