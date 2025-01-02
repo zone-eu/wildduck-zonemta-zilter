@@ -233,7 +233,7 @@ module.exports.init = async app => {
         // Call Zilter with required params
         try {
             const agent = new RetryAgent(
-                new Agent({ keepAliveTimeout: app.config.keepAliveTimeout || 5000, keepAliveMaxTimeout: app.config.keepAliveMaxTimeout || 5000 }),
+                new Agent({ keepAliveTimeout: app.config.keepAliveTimeout || 5000, keepAliveMaxTimeout: app.config.keepAliveMaxTimeout || 600e3 }),
                 {
                     maxRetries: app.config.maxRetries || 3,
                     minTimeout: app.config.minRetryTimeout || 100,
