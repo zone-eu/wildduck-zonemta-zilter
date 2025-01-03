@@ -1,7 +1,7 @@
 'use strict';
 
-const undici = require('undici');
-const libmime = require('libmime');
+const { request, RetryAgent, Agent } = require('undici');
+const { decodeWords } = require('libmime');
 const { toUnicode } = require('punycode');
 const { randomBytes } = require('node:crypto');
 
@@ -16,7 +16,7 @@ function decodeHeaderLineIntoKeyValuePair(headerLine) {
     let headerValue = headerLine.substring(headerSeparatorPos + 1);
 
     try {
-        decodedHeaderStr = libmime.decodeWords(headerValue);
+        decodedHeaderStr = decodeWords(headerValue);
     } catch (err) {
         // keep the value as is
         decodedHeaderStr = headerValue;
@@ -232,8 +232,16 @@ module.exports.init = async app => {
 
         // Call Zilter with required params
         try {
-            const res = await undici.request(zilterUrl, {
-                dispatcher: undici.getGlobalDispatcher(),
+            // Create Undici RetryAgent to retry requests on common errors
+            const { keepAliveTimeout, keepAliveMaxTimeout, maxRetries, minRetryTimeout, maxRetryTimeout, timeoutFactor } = app.config;
+            const agent = new RetryAgent(new Agent({ keepAliveTimeout: keepAliveTimeout || 5000, keepAliveMaxTimeout: keepAliveMaxTimeout || 600e3 }), {
+                maxRetries: maxRetries || 3,
+                minTimeout: minRetryTimeout || 100,
+                maxTimeout: maxRetryTimeout || 300,
+                timeoutFactor: timeoutFactor || 1.5
+            });
+            const res = await request(zilterUrl, {
+                dispatcher: agent, // use RetryAgent so in case of request fail - retry
                 method: 'POST',
                 body: JSON.stringify({
                     host: originhost, // Originhost is a string that includes [] (array as a string literal)
@@ -241,8 +249,8 @@ module.exports.init = async app => {
                     sender, // Sender User ID (uid) in the system
                     helo: transhost, // Transhost is a string that includes [] (array as a string literal)
                     'authenticated-sender': authenticatedUserAddress || authenticatedUser, // Sender user email
-                    'queue-id': envelope.id,
-                    'rfc822-size': messageSize,
+                    'queue-id': envelope.id, // Queue ID of the envelope of the message
+                    'rfc822-size': messageSize, // Size of the raw RFC822-compatible e-mail
                     from: envelope.from,
                     rcpt: envelope.to,
                     headers: messageHeadersList
