@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.21](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.20...v1.0.21) (2025-01-03)
+
+
+### Bug Fixes
+
+* **retryagent:** On request fail retry ZMS-191 ([#48](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/48)) ([001c19a](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/001c19adc5fc21650954d1c7977502de083f6c78))
+
 ## [1.0.20](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.19...v1.0.20) (2024-11-21)
 
 
