@@ -238,7 +238,9 @@ module.exports.init = async app => {
                 maxRetries: maxRetries || 3,
                 minTimeout: minRetryTimeout || 100,
                 maxTimeout: maxRetryTimeout || 300,
-                timeoutFactor: timeoutFactor || 1.5
+                timeoutFactor: timeoutFactor || 1.5,
+                statusCodes: [500, 502, 503, 504],
+                methods: ['POST', 'HEAD', 'OPTIONS', 'CONNECT']
             });
             const res = await request(zilterUrl, {
                 dispatcher: agent, // use RetryAgent so in case of request fail - retry
