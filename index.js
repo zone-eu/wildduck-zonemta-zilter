@@ -90,6 +90,9 @@ const normalizeAddress = (address, asObject) => {
     return addr;
 };
 
+// Global agent - connection pool
+let agent;
+
 module.exports.title = 'Zilter';
 module.exports.init = async app => {
     app.addHook('message:queue', async (envelope, messageinfo) => {
@@ -136,6 +139,24 @@ module.exports.init = async app => {
                 _error: 'Zilter URL is missing, add it. Aborting check'
             });
             return;
+        }
+
+        if (!agent) {
+            // if agent has not yet been initialize then create one
+            const { keepAliveTimeout, keepAliveMaxTimeout, maxRetries, minRetryTimeout, maxRetryTimeout, timeoutFactor } = app.config;
+            agent = new RetryAgent(
+                new Agent({ keepAliveTimeout: keepAliveTimeout || 5000, keepAliveMaxTimeout: keepAliveMaxTimeout || 600e3, pipelining: 0 }),
+                {
+                    maxRetries: maxRetries || 3,
+                    minTimeout: minRetryTimeout || 100,
+                    maxTimeout: maxRetryTimeout || 300,
+                    timeoutFactor: timeoutFactor || 1.5,
+                    connections: 50, // allow 50 concurrent sockets, client objects
+                    pipelining: 1, // enable keep-alive, but do not pipeline
+                    statusCodes: [500, 502, 503, 504],
+                    methods: ['POST', 'HEAD', 'OPTIONS', 'CONNECT']
+                }
+            );
         }
 
         // check whether we need to resolve for email
@@ -233,15 +254,6 @@ module.exports.init = async app => {
         // Call Zilter with required params
         try {
             // Create Undici RetryAgent to retry requests on common errors
-            const { keepAliveTimeout, keepAliveMaxTimeout, maxRetries, minRetryTimeout, maxRetryTimeout, timeoutFactor } = app.config;
-            const agent = new RetryAgent(new Agent({ keepAliveTimeout: keepAliveTimeout || 5000, keepAliveMaxTimeout: keepAliveMaxTimeout || 600e3 }), {
-                maxRetries: maxRetries || 3,
-                minTimeout: minRetryTimeout || 100,
-                maxTimeout: maxRetryTimeout || 300,
-                timeoutFactor: timeoutFactor || 1.5,
-                statusCodes: [500, 502, 503, 504],
-                methods: ['POST', 'HEAD', 'OPTIONS', 'CONNECT']
-            });
             const res = await request(zilterUrl, {
                 dispatcher: agent, // use RetryAgent so in case of request fail - retry
                 method: 'POST',
