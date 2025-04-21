@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.23](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.22...v1.0.23) (2025-04-21)
+
+
+### Bug Fixes
+
+* **agent:** Do no recreate agent, use persistent connection ([#52](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/52)) ([a0f4fb9](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/a0f4fb94a66e8cc43d61188be70d5e36803c4794))
+
 ## [1.0.22](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.21...v1.0.22) (2025-01-06)
 
 
