@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.24](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.23...v1.0.24) (2025-04-21)
+
+
+### Bug Fixes
+
+* fix agent settings ([#54](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/54)) ([797ef18](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/797ef1889c992a297ad1a13d494f2387eea57897))
+
 ## [1.0.23](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.22...v1.0.23) (2025-04-21)
 
 
