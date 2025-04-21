@@ -145,14 +145,17 @@ module.exports.init = async app => {
             // if agent has not yet been initialize then create one
             const { keepAliveTimeout, keepAliveMaxTimeout, maxRetries, minRetryTimeout, maxRetryTimeout, timeoutFactor } = app.config;
             agent = new RetryAgent(
-                new Agent({ keepAliveTimeout: keepAliveTimeout || 5000, keepAliveMaxTimeout: keepAliveMaxTimeout || 600e3, pipelining: 0 }),
+                new Agent({
+                    keepAliveTimeout: keepAliveTimeout || 5000,
+                    keepAliveMaxTimeout: keepAliveMaxTimeout || 600e3,
+                    connections: 50, // allow 50 concurrent sockets, client objects
+                    pipelining: 1 // enable keep-alive, but do not pipeline
+                }),
                 {
                     maxRetries: maxRetries || 3,
                     minTimeout: minRetryTimeout || 100,
                     maxTimeout: maxRetryTimeout || 300,
                     timeoutFactor: timeoutFactor || 1.5,
-                    connections: 50, // allow 50 concurrent sockets, client objects
-                    pipelining: 1, // enable keep-alive, but do not pipeline
                     statusCodes: [500, 502, 503, 504],
                     methods: ['POST', 'HEAD', 'OPTIONS', 'CONNECT']
                 }
