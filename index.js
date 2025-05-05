@@ -95,7 +95,7 @@ let agent;
 
 module.exports.title = 'zilter';
 module.exports.init = async app => {
-    app.addHook('message:queue', async (envelope, messageinfo) => {
+    app.addHook('message:queue', async (envelope, messageInfo) => {
         // check with zilter
         // if incorrect do app.reject()
 
@@ -110,7 +110,7 @@ module.exports.init = async app => {
 
         if (logIncomingData) {
             // log available data
-            app.logger.info('Incoming data: ', envelope, messageinfo, envelope.headers.getList());
+            app.logger.info('Incoming data: ', envelope, messageInfo, envelope.headers.getList());
         }
 
         if (!userName || !apiKey) {
@@ -248,7 +248,7 @@ module.exports.init = async app => {
         const originhost = serverHost || (envelope.originhost || '').replace('[', '').replace(']', '');
         const transhost = (envelope.transhost || '').replace('[', '').replace(']', '') || originhost;
 
-        let subject = messageinfo.subject || allHeadersParsed.Subject || 'no subject';
+        let subject = messageInfo.subject || allHeadersParsed.Subject || 'no subject';
         subject = subject.substring(0, subjectMaxLength);
         const messageIdHeaderVal = allHeadersParsed['Message-ID']?.replace('<', '').replace('>', '');
 
@@ -305,6 +305,18 @@ module.exports.init = async app => {
                     _ip: envelope.origin,
                     _debug_json: debugJson
                 });
+
+                // Log zilter unauthorized to console
+                const id = typeof envelope === 'object' ? envelope.id : envelope;
+
+                let messageInfoStr = messageInfo;
+                if (messageInfo && typeof messageInfo.format === 'function') {
+                    messageInfoStr = messageInfo.format();
+                }
+                messageInfoStr = (messageInfoStr || '').toString().trim();
+
+                const msg = '%s NOQUEUE [unauthorized]' + (messageInfoStr ? ' (' + messageInfoStr + ')' : '');
+                app.logger.info(app.options.title, msg, id);
             }
 
             if (resBodyJson.action && resBodyJson.action !== 'accept') {
@@ -331,6 +343,21 @@ module.exports.init = async app => {
                     _ip: envelope.origin,
                     _debug_json: debugJson
                 });
+
+                // Log zilter banned to console
+                const id = typeof envelope === 'object' ? envelope.id : envelope;
+
+                let messageInfoStr = messageInfo;
+                if (messageInfo && typeof messageInfo.format === 'function') {
+                    messageInfoStr = messageInfo.format();
+                }
+                messageInfoStr = (messageInfoStr || '').toString().trim();
+
+                const msg =
+                    '%s NOQUEUE [banned]' +
+                    (messageInfoStr ? ' (' + messageInfoStr + ')' : '') +
+                    (resBodyJson.action ? ` (passed=N action=${resBodyJson.action})` : ` (passed=N)`);
+                app.logger.info(app.options.title, msg, id);
             } else if (resBodyJson.action && resBodyJson.action === 'accept') {
                 // accepted, so not a tempfail
                 isTempFail = false;
@@ -350,6 +377,21 @@ module.exports.init = async app => {
                     _ip: envelope.origin,
                     _debug_json: debugJson
                 });
+
+                // Log Zilter pass check to console
+                const id = typeof envelope === 'object' ? envelope.id : envelope;
+
+                let messageInfoStr = messageInfo;
+                if (messageInfo && typeof messageInfo.format === 'function') {
+                    messageInfoStr = messageInfo.format();
+                }
+                messageInfoStr = (messageInfoStr || '').toString().trim();
+
+                const msg =
+                    '%s QUEUE [passed]' +
+                    (messageInfoStr ? ' (' + messageInfoStr + ')' : '') +
+                    (resBodyJson.action ? ` (passed=Y action=${resBodyJson.action})` : ` (passed=Y)`);
+                app.logger.info(app.options.title, msg, id);
             }
         } catch (err) {
             // error, default to tempfail
@@ -375,13 +417,13 @@ module.exports.init = async app => {
             throw app.reject(
                 envelope,
                 'banned',
-                messageinfo,
+                messageInfo,
                 `550 ${zilterResponse && zilterResponse.symbols ? `SENDING BLOCKED, REASON: ${zilterResponse.symbols.REJECT_REASON}` : 'SENDING BLOCKED'}`
             );
         }
 
         if (isTempFail) {
-            throw app.reject(envelope, 'tempfail', messageinfo, 'Temporary error, please try again later.');
+            throw app.reject(envelope, 'tempfail', messageInfo, 'Temporary error, please try again later.');
         }
 
         return;
