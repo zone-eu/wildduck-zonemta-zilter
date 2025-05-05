@@ -93,7 +93,7 @@ const normalizeAddress = (address, asObject) => {
 // Global agent - connection pool
 let agent;
 
-module.exports.title = 'Zilter';
+module.exports.title = 'zilter';
 module.exports.init = async app => {
     app.addHook('message:queue', async (envelope, messageinfo) => {
         // check with zilter
