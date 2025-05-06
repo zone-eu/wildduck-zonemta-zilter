@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.25](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.24...v1.0.25) (2025-05-06)
+
+
+### Bug Fixes
+
+* ZMS-219 add more logging in the console ([#56](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/56)) ([c08f2e5](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/c08f2e510b385f454eb3ffbb2c2a20451c1d6514))
+
 ## [1.0.24](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.23...v1.0.24) (2025-04-21)
 
 
