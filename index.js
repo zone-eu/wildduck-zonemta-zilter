@@ -1,6 +1,6 @@
 'use strict';
 
-const { request, RetryAgent, Agent } = require('undici');
+const { request, RetryAgent, Agent, getGlobalDispatcher } = require('undici');
 const { decodeWords } = require('libmime');
 const { toUnicode } = require('punycode');
 const { randomBytes } = require('node:crypto');
@@ -92,6 +92,8 @@ const normalizeAddress = (address, asObject) => {
 
 // Global agent - connection pool
 let agent;
+const retryStatusCodes = [500, 502, 503, 504];
+const errorCodes = ['ECONNRESET', 'ECONNREFUSED', 'ENOTFOUND', 'ENETDOWN', 'ENETUNREACH', 'EHOSTDOWN', 'UND_ERR_SOCKET']; // Default undici
 
 module.exports.title = 'zilter';
 module.exports.init = async app => {
@@ -101,6 +103,7 @@ module.exports.init = async app => {
 
         const SUBJECT_MAX_ALLOWED_LENGTH = 16000;
         const { userName, apiKey, serverHost, zilterUrl, logIncomingData } = app.config;
+        let { zilterFallbackUrl } = app.config;
 
         let subjectMaxLength = app.config.subjectMaxLength;
 
@@ -141,6 +144,11 @@ module.exports.init = async app => {
             return;
         }
 
+        if (!zilterFallbackUrl) {
+            // If no separate fallback given then default to original host
+            zilterFallbackUrl = zilterUrl;
+        }
+
         if (!agent) {
             // if agent has not yet been initialize then create one
             const { keepAliveTimeout, keepAliveMaxTimeout, maxRetries, minRetryTimeout, maxRetryTimeout, timeoutFactor } = app.config;
@@ -156,7 +164,8 @@ module.exports.init = async app => {
                     minTimeout: minRetryTimeout || 100,
                     maxTimeout: maxRetryTimeout || 300,
                     timeoutFactor: timeoutFactor || 1.5,
-                    statusCodes: [500, 502, 503, 504],
+                    statusCodes: retryStatusCodes,
+                    errorCodes,
                     methods: ['POST', 'HEAD', 'OPTIONS', 'CONNECT']
                 }
             );
@@ -254,37 +263,65 @@ module.exports.init = async app => {
 
         let zilterResponse;
 
+        const zilterRequestDataObj = {
+            host: originhost, // Originhost is a string that includes [] (array as a string literal)
+            'zilter-id': zilterId, // Random ID
+            sender, // Sender User ID (uid) in the system
+            helo: transhost, // Transhost is a string that includes [] (array as a string literal)
+            'authenticated-sender': authenticatedUserAddress || authenticatedUser, // Sender user email
+            'queue-id': envelope.id, // Queue ID of the envelope of the message
+            'rfc822-size': messageSize, // Size of the raw RFC822-compatible e-mail
+            from: envelope.from,
+            rcpt: envelope.to,
+            headers: messageHeadersList
+        };
+
         // Call Zilter with required params
         try {
-            // Create Undici RetryAgent to retry requests on common errors
-            const res = await request(zilterUrl, {
-                dispatcher: agent, // use RetryAgent so in case of request fail - retry
-                method: 'POST',
-                body: JSON.stringify({
-                    host: originhost, // Originhost is a string that includes [] (array as a string literal)
-                    'zilter-id': zilterId, // Random ID
-                    sender, // Sender User ID (uid) in the system
-                    helo: transhost, // Transhost is a string that includes [] (array as a string literal)
-                    'authenticated-sender': authenticatedUserAddress || authenticatedUser, // Sender user email
-                    'queue-id': envelope.id, // Queue ID of the envelope of the message
-                    'rfc822-size': messageSize, // Size of the raw RFC822-compatible e-mail
-                    from: envelope.from,
-                    rcpt: envelope.to,
-                    headers: messageHeadersList
-                }),
-                headers: { Authorization: `Basic ${userBase64}`, 'Content-Type': 'application/json' }
-            });
+            let res;
+            let hasRetriedAlready;
+            try {
+                res = await request(zilterUrl, {
+                    dispatcher: getGlobalDispatcher(),
+                    method: 'POST',
+                    body: JSON.stringify(zilterRequestDataObj),
+                    headers: { Authorization: `Basic ${userBase64}`, 'Content-Type': 'application/json' }
+                });
+
+                if (retryStatusCodes.includes(res.statusCode)) {
+                    // Retry with fallback url
+                    hasRetriedAlready = true;
+                    res = await request(zilterFallbackUrl, {
+                        dispatcher: agent, // use RetryAgent so in case of request fail - retry
+                        method: 'POST',
+                        body: JSON.stringify(zilterRequestDataObj),
+                        headers: { Authorization: `Basic ${userBase64}`, 'Content-Type': 'application/json' }
+                    });
+                }
+            } catch (error) {
+                // Can be an error with an error code (ECONNRESET etc.)
+                // Retry with fallback url if not retried before
+                if (!hasRetriedAlready && (errorCodes.includes(error.code) || retryStatusCodes.includes(error.statusCode))) {
+                    res = await request(zilterFallbackUrl, {
+                        dispatcher: agent, // use RetryAgent so in case of request fail - retry
+                        method: 'POST',
+                        body: JSON.stringify(zilterRequestDataObj),
+                        headers: { Authorization: `Basic ${userBase64}`, 'Content-Type': 'application/json' }
+                    }); // If throws will be handled by outer catch block
+                }
+                throw error; // Throw original error to outer catch block
+            }
+
             const resBodyJson = await res.body.json();
 
             const debugJson = { ...resBodyJson };
 
             zilterResponse = resBodyJson;
 
-            ['SENDER', 'SENDER_GROUP', 'WEBHOOK'].forEach(sym => {
-                if (debugJson.symbols) {
-                    delete debugJson.symbols[sym];
-                }
-            });
+            if (debugJson.symbols) {
+                ['SENDER', 'SENDER_GROUP', 'WEBHOOK'].forEach(sym => delete debugJson.symbols[sym]);
+            }
+
             ['sender', 'action', 'zilter-id', 'client'].forEach(el => delete debugJson[el]);
 
             if (res.statusCode === 401) {
