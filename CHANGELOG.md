@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.27](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.26...v1.0.27) (2025-06-11)
+
+
+### Bug Fixes
+
+* ZMS-240 ([#60](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/60)) ([d2b8791](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/d2b8791bf9c4622bcc50d21fd1b9871ada561b9c))
+
 ## [1.0.26](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.25...v1.0.26) (2025-06-09)
 
 
