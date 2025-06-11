@@ -1,6 +1,6 @@
 'use strict';
 
-const { request, RetryAgent, Agent, getGlobalDispatcher } = require('undici');
+const { request, RetryAgent, Agent } = require('undici');
 const { decodeWords } = require('libmime');
 const { toUnicode } = require('punycode');
 const { randomBytes } = require('node:crypto');
@@ -92,6 +92,7 @@ const normalizeAddress = (address, asObject) => {
 
 // Global agent - connection pool
 let agent;
+let defaultAgent;
 const retryStatusCodes = [500, 502, 503, 504];
 const errorCodes = ['ECONNRESET', 'ECONNREFUSED', 'ENOTFOUND', 'ENETDOWN', 'ENETUNREACH', 'EHOSTDOWN', 'UND_ERR_SOCKET']; // Default undici
 
@@ -147,6 +148,17 @@ module.exports.init = async app => {
         if (!zilterFallbackUrl) {
             // If no separate fallback given then default to original host
             zilterFallbackUrl = zilterUrl;
+        }
+
+        if (!defaultAgent) {
+            // separate agent
+            const { keepAliveTimeout, keepAliveMaxTimeout } = app.config;
+            defaultAgent = new Agent({
+                keepAliveTimeout: keepAliveTimeout || 5000,
+                keepAliveMaxTimeout: keepAliveMaxTimeout || 600e3,
+                connections: 50, // allow 50 concurrent sockets, client objects
+                pipelining: 1 // enable keep-alive, but do not pipeline
+            });
         }
 
         if (!agent) {
@@ -282,7 +294,7 @@ module.exports.init = async app => {
             let hasRetriedAlready;
             try {
                 res = await request(zilterUrl, {
-                    dispatcher: getGlobalDispatcher(),
+                    dispatcher: defaultAgent,
                     method: 'POST',
                     body: JSON.stringify(zilterRequestDataObj),
                     headers: { Authorization: `Basic ${userBase64}`, 'Content-Type': 'application/json' }
@@ -299,17 +311,18 @@ module.exports.init = async app => {
                     });
                 }
             } catch (error) {
-                // Can be an error with an error code (ECONNRESET etc.)
+                // Can be an error with an error code (ECONNRESET etc.) or a Timeout or a 5xx status
                 // Retry with fallback url if not retried before
-                if (!hasRetriedAlready && (errorCodes.includes(error.code) || retryStatusCodes.includes(error.statusCode))) {
+                if (!hasRetriedAlready) {
                     res = await request(zilterFallbackUrl, {
                         dispatcher: agent, // use RetryAgent so in case of request fail - retry
                         method: 'POST',
                         body: JSON.stringify(zilterRequestDataObj),
                         headers: { Authorization: `Basic ${userBase64}`, 'Content-Type': 'application/json' }
                     }); // If throws will be handled by outer catch block
+                } else {
+                    throw error; // Throw original error to outer catch block
                 }
-                throw error; // Throw original error to outer catch block
             }
 
             const resBodyJson = await res.body.json();
