@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.26](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.25...v1.0.26) (2025-06-09)
+
+
+### Bug Fixes
+
+* ZMS-236 use zilter fallback node in case of errors ([#58](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/58)) ([d27236d](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/d27236d301147e3bc3116da8353cb9b3e871a058))
+
 ## [1.0.25](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.24...v1.0.25) (2025-05-06)
 
 
