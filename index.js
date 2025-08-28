@@ -25,37 +25,13 @@ function decodeHeaderLineIntoKeyValuePair(headerLine) {
     return [headerKey.trim(), decodedHeaderStr.trim()];
 }
 
-const loggelfForEveryUser = (app, short_message, data) => {
-    if (data._rcpt.length > 1) {
-        // send for every recipient
-
-        for (const rcpt of data._rcpt) {
-            app.loggelf({
-                short_message,
-                ...data,
-                _rcpt: rcpt
-            });
-        }
-    } else {
-        if (!data.hasOwnProperty('_rcpt')) {
-            data._rcpt = [];
-        }
-
-        app.loggelf({
-            short_message,
-            ...data,
-            _rcpt: data._rcpt[0] || '' // single recipient
-        });
-    }
-};
-
 const normalizeDomain = domain => {
     domain = (domain || '').toLowerCase().trim();
     try {
         if (/^xn--/.test(domain)) {
             domain = toUnicode(domain).normalize('NFC').toLowerCase().trim();
         }
-    } catch (E) {
+    } catch {
         // ignore
     }
 
@@ -88,6 +64,26 @@ const normalizeAddress = (address, asObject) => {
         };
     }
     return addr;
+};
+
+const loggelfForEveryUser = (app, short_message, data) => {
+    if (data._rcpt) {
+        if (!Array.isArray(data._rcpt)) {
+            data._rcpt = [data._rcpt];
+        }
+    } else {
+        data._rcpt = [''];
+    }
+
+    const cleanRcpt = data._rcpt.map(to => normalizeAddress(to, true).addrview);
+    data._rcpt.forEach((rcpt, i) => {
+        app.loggelf({
+            short_message,
+            ...data,
+            _rcpt: rcpt,
+            _clean_rcpt: cleanRcpt[i]
+        });
+    });
 };
 
 // Global agent - connection pool
