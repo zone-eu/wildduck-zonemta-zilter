@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.28](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.27...v1.0.28) (2025-08-28)
+
+
+### Bug Fixes
+
+* **logs:** ZMS-261 Log cleaned rcpt addresses ([#62](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/62)) ([03811b4](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/03811b4906ef89b0e0987480bf0fccbc7969a435))
+
 ## [1.0.27](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.26...v1.0.27) (2025-06-11)
 
 
