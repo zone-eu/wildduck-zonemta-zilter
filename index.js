@@ -25,52 +25,6 @@ function decodeHeaderLineIntoKeyValuePair(headerLine) {
     return [headerKey.trim(), decodedHeaderStr.trim()];
 }
 
-const loggelfForEveryUser = (app, short_message, data) => {
-    if (data._rcpt.length > 1) {
-        // send for every recipient
-
-        for (const rcpt of data._rcpt) {
-            app.loggelf({
-                short_message,
-                ...data,
-                _rcpt: rcpt
-            });
-        }
-    } else {
-        if (!data.hasOwnProperty('_rcpt')) {
-            data._rcpt = [];
-        }
-
-        app.loggelf({
-            short_message,
-            ...data,
-            _rcpt: data._rcpt[0] || '' // single recipient
-        });
-    }
-
-    if (data._clean_rcpt.length > 1) {
-        // send for every clean recipient
-
-        for (const cleanRcpt of data._clean_rcpt) {
-            app.loggelf({
-                short_message,
-                ...data,
-                _clean_rcpt: cleanRcpt
-            });
-        }
-    } else {
-        if (!data.hasOwnProperty('_clean_rcpt')) {
-            data._clean_rcpt = [];
-        }
-
-        app.loggelf({
-            short_message,
-            ...data,
-            _clean_rcpt: data._clean_rcpt[0] || '' // single recipient
-        });
-    }
-};
-
 const normalizeDomain = domain => {
     domain = (domain || '').toLowerCase().trim();
     try {
@@ -110,6 +64,26 @@ const normalizeAddress = (address, asObject) => {
         };
     }
     return addr;
+};
+
+const loggelfForEveryUser = (app, short_message, data) => {
+    if (data._rcpt) {
+        if (!Array.isArray(data._rcpt)) {
+            data._rcpt = [data._rcpt];
+        }
+    } else {
+        data._rcpt = [''];
+    }
+
+    const cleanRcpt = data._rcpt.map(to => normalizeAddress(to, true).addrview);
+    data._rcpt.forEach((rcpt, i) => {
+        app.loggelf({
+            short_message,
+            ...data,
+            _rcpt: rcpt,
+            _clean_rcpt: cleanRcpt[i]
+        });
+    });
 };
 
 // Global agent - connection pool
@@ -264,8 +238,6 @@ module.exports.init = async app => {
             return;
         }
 
-        const cleanRcpt = (Array.isArray(envelope.to) ? envelope.to : [envelope.to]).map(to => normalizeAddress(to, true).addrview);
-
         // construct Authorization header
         const userBase64 = Buffer.from(`${userName}:${apiKey}`).toString('base64'); // authorization header
 
@@ -369,7 +341,6 @@ module.exports.init = async app => {
                     _rfc822_size: messageSize,
                     _app: 'zilter',
                     _rcpt: envelope.to,
-                    _clean_rcpt: cleanRcpt,
                     _from: envelope.from,
                     _header_from: allHeadersParsed.From,
                     _header_to: allHeadersParsed.To,
@@ -407,7 +378,6 @@ module.exports.init = async app => {
                     _rfc822_size: messageSize,
                     _app: 'zilter',
                     _rcpt: envelope.to,
-                    _clean_rcpt: cleanRcpt,
                     _from: envelope.from,
                     _header_from: allHeadersParsed.From,
                     _header_to: allHeadersParsed.To,
@@ -443,7 +413,6 @@ module.exports.init = async app => {
                     _rfc822_size: messageSize,
                     _app: 'zilter',
                     _rcpt: envelope.to,
-                    _clean_rcpt: cleanRcpt,
                     _from: envelope.from,
                     _header_from: allHeadersParsed.From,
                     _header_to: allHeadersParsed.To,
@@ -478,7 +447,6 @@ module.exports.init = async app => {
                 _rfc822_size: messageSize,
                 _app: 'zilter',
                 _rcpt: envelope.to,
-                _clean_rcpt: cleanRcpt,
                 _from: envelope.from,
                 _header_from: allHeadersParsed.From,
                 _header_to: allHeadersParsed.To,
