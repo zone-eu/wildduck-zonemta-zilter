@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.30](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.29...v1.0.30) (2025-12-03)
+
+
+### Bug Fixes
+
+* **config:** ZMSA-40: update config ([#66](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/66)) ([18875f7](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/18875f7a738659a4ed99611e08a1bd06c40b03a6))
+
 ## [1.0.29](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.28...v1.0.29) (2025-12-03)
 
 
