@@ -1,4 +1,4 @@
-["modules/wildduck-zonemta-zilter"] # load plugin from node modules
+["modules/@zone-eu/wildduck-zonemta-zilter"] # load plugin from node modules
 enabled = "receiver"
 userName = ""
 apiKey = ""
