@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.29](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.28...v1.0.29) (2025-12-03)
+
+
+### Bug Fixes
+
+* ZMSA-40: Log pwned value of user , update workflow, scope package ([#64](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/64)) ([536c8f6](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/536c8f6256e2abe90315a922b77b08055aa3b87a))
+
 ## [1.0.28](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.27...v1.0.28) (2025-08-28)
 
 
