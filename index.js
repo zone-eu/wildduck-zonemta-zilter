@@ -75,7 +75,7 @@ const loggelfForEveryUser = (app, short_message, data) => {
         data._rcpt = [''];
     }
 
-    const cleanRcpt = data._rcpt.map(to => normalizeAddress(to, true).addrview);
+    const cleanRcpt = data._rcpt.map(rcpt => normalizeAddress(rcpt, true).addrview);
     data._rcpt.forEach((rcpt, i) => {
         app.loggelf({
             short_message,
@@ -190,6 +190,8 @@ module.exports.init = async app => {
         let passEmail = true; // by default pass email
         let isTempFail = true; // by default tempfail
 
+        let userData = {};
+
         try {
             if (authenticatedUser.includes('@')) {
                 if (smtpUsernamePatternRegex.test(authenticatedUser)) {
@@ -220,10 +222,11 @@ module.exports.init = async app => {
 
                 const addressData = await app.db.users.collection('addresses').findOne({ addrview });
                 sender = addressData.user.toString();
+                userData = await app.db.users.collection('users').findOne({ _id: addressData.user });
             } else {
                 // current user authenticated via the username, resolve to email
                 authenticatedUser = authenticatedUser.replace(/\./g, '').normalize('NFC').toLowerCase().trim(); // Normalize username to unameview
-                const userData = await app.db.users.collection('users').findOne({ unameview: authenticatedUser });
+                userData = await app.db.users.collection('users').findOne({ unameview: authenticatedUser });
                 authenticatedUserAddress = userData.address; // main address of the user
                 sender = userData._id.toString(); // ID of the user
             }
@@ -349,7 +352,8 @@ module.exports.init = async app => {
                     level: 5,
                     _zilter_error: 'Unauthorized error 401',
                     _ip: envelope.origin,
-                    _debug_json: debugJson
+                    _debug_json: debugJson,
+                    _pwned: !!userData.pwned
                 });
 
                 // Log zilter unauthorized to console
@@ -387,7 +391,8 @@ module.exports.init = async app => {
                     _passed: 'N',
                     _action: resBodyJson.action,
                     _ip: envelope.origin,
-                    _debug_json: debugJson
+                    _debug_json: debugJson,
+                    _pwned: !!userData.pwned
                 });
 
                 // Log zilter banned to console
@@ -421,7 +426,8 @@ module.exports.init = async app => {
                     level: 5,
                     _passed: 'Y',
                     _ip: envelope.origin,
-                    _debug_json: debugJson
+                    _debug_json: debugJson,
+                    _pwned: !!userData.pwned
                 });
 
                 // Log Zilter pass check to console
@@ -454,7 +460,8 @@ module.exports.init = async app => {
                 _subject: subject,
                 level: 5,
                 _zilter_error: err.message,
-                _ip: envelope.origin
+                _ip: envelope.origin,
+                _pwned: !!userData.pwned
             });
         }
 
