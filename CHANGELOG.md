@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.31](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.30...v1.0.31) (2025-12-04)
+
+
+### Bug Fixes
+
+* ZMSA-44: send userdata pwned in request to zilter, update comment ([#68](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/68)) ([921685e](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/921685e37e7cc71994df112b8b057f29e82be4e2))
+
 ## [1.0.30](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.29...v1.0.30) (2025-12-03)
 
 
