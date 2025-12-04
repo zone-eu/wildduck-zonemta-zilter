@@ -284,7 +284,7 @@ module.exports.init = async app => {
             'rfc822-size': messageSize, // Size of the raw RFC822-compatible e-mail
             from: envelope.from,
             rcpt: envelope.to,
-            headers: messageHeadersList,
+            headers: messageHeadersList, // Message headers
             pwned: !!userData.pwned
         };
 
