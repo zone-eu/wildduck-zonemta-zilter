@@ -285,7 +285,7 @@ module.exports.init = async app => {
             from: envelope.from,
             rcpt: envelope.to,
             headers: messageHeadersList, // Message headers
-            pwned: !!userData.pwned
+            pwned: !!userData.passwordPwned
         };
 
         // Call Zilter with required params
@@ -354,7 +354,7 @@ module.exports.init = async app => {
                     _zilter_error: 'Unauthorized error 401',
                     _ip: envelope.origin,
                     _debug_json: debugJson,
-                    _pwned: !!userData.pwned
+                    _pwned: !!userData.passwordPwned
                 });
 
                 // Log zilter unauthorized to console
@@ -393,7 +393,7 @@ module.exports.init = async app => {
                     _action: resBodyJson.action,
                     _ip: envelope.origin,
                     _debug_json: debugJson,
-                    _pwned: !!userData.pwned
+                    _pwned: !!userData.passwordPwned
                 });
 
                 // Log zilter banned to console
@@ -428,7 +428,7 @@ module.exports.init = async app => {
                     _passed: 'Y',
                     _ip: envelope.origin,
                     _debug_json: debugJson,
-                    _pwned: !!userData.pwned
+                    _pwned: !!userData.passwordPwned
                 });
 
                 // Log Zilter pass check to console
@@ -462,7 +462,7 @@ module.exports.init = async app => {
                 level: 5,
                 _zilter_error: err.message,
                 _ip: envelope.origin,
-                _pwned: !!userData.pwned
+                _pwned: !!userData.passwordPwned
             });
         }
 
