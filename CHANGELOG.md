@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.32](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.31...v1.0.32) (2025-12-08)
+
+
+### Bug Fixes
+
+* ZMSA-46: fix pwned log and request obj, update release workflow ([#70](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/70)) ([0d1dc59](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/0d1dc59a6032778d87e6155d24a2e55f17bd01f5))
+
 ## [1.0.31](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.30...v1.0.31) (2025-12-04)
 
 
