@@ -91,13 +91,32 @@ let agent;
 let defaultAgent;
 const retryStatusCodes = [500, 502, 503, 504];
 const errorCodes = ['ECONNRESET', 'ECONNREFUSED', 'ENOTFOUND', 'ENETDOWN', 'ENETUNREACH', 'EHOSTDOWN', 'UND_ERR_SOCKET']; // Default undici
-let passwordType;
 
 module.exports.title = 'zilter';
 module.exports.init = async app => {
+    const authPasswordTypeBySessionId = new Map();
+    const AUTH_PASSWORD_TYPE_TTL = 30 * 60 * 1000;
+    const AUTH_PASSWORD_TYPE_SWEEP_INTERVAL = 5 * 60 * 1000;
+
+    const sweepPasswordTypes = () => {
+        const now = Date.now();
+        for (const [sessionId, entry] of authPasswordTypeBySessionId.entries()) {
+            if (!entry || !entry.ts || now - entry.ts > AUTH_PASSWORD_TYPE_TTL) {
+                authPasswordTypeBySessionId.delete(sessionId);
+            }
+        }
+    };
+
+    const sweepTimer = setInterval(sweepPasswordTypes, AUTH_PASSWORD_TYPE_SWEEP_INTERVAL);
+    if (typeof sweepTimer.unref === 'function') {
+        sweepTimer.unref();
+    }
+
     app.addHook('smtp:auth', (auth, session, next) => {
         if (auth && auth.passwordType) {
-            passwordType = auth.passwordType;
+            authPasswordTypeBySessionId.set(session.id, { passwordType: auth.passwordType, ts: Date.now() });
+        } else {
+            authPasswordTypeBySessionId.delete(session.id);
         }
         next();
     });
@@ -296,9 +315,10 @@ module.exports.init = async app => {
             pwned: !!userData.passwordPwned
         };
 
-        if (passwordType) {
-            zilterRequestDataObj.passwordType = passwordType;
-            passwordType = null;
+        const authEntry = authPasswordTypeBySessionId.get(envelope.sessionId);
+        if (authEntry && authEntry.passwordType) {
+            zilterRequestDataObj.passwordType = authEntry.passwordType;
+            authEntry.ts = Date.now();
         }
         // Call Zilter with required params
         try {
