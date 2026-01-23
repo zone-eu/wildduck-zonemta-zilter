@@ -91,9 +91,17 @@ let agent;
 let defaultAgent;
 const retryStatusCodes = [500, 502, 503, 504];
 const errorCodes = ['ECONNRESET', 'ECONNREFUSED', 'ENOTFOUND', 'ENETDOWN', 'ENETUNREACH', 'EHOSTDOWN', 'UND_ERR_SOCKET']; // Default undici
+let passwordType;
 
 module.exports.title = 'zilter';
 module.exports.init = async app => {
+    app.addHook('smtp:auth', (auth, session, next) => {
+        if (auth && auth.passwordType) {
+            passwordType = auth.passwordType;
+        }
+        next();
+    });
+
     app.addHook('message:queue', async (envelope, messageInfo) => {
         // check with zilter
         // if incorrect do app.reject()
@@ -288,6 +296,10 @@ module.exports.init = async app => {
             pwned: !!userData.passwordPwned
         };
 
+        if (passwordType) {
+            zilterRequestDataObj.passwordType = passwordType;
+            passwordType = null;
+        }
         // Call Zilter with required params
         try {
             let res;
