@@ -112,6 +112,27 @@ module.exports.init = async app => {
         sweepTimer.unref();
     }
 
+    const getPasswordType = (envelope, authPasswordTypeBySessionId) => {
+        if (!envelope) return false;
+
+        // WD path: passwordType is retrieved directly from envelope object
+        if (envelope.passwordType) {
+            return envelope.passwordType;
+        }
+
+        // Zone‑MTA path: from smtp:auth + sessionId
+        const sessionId = envelope.sessionId || (envelope.session && envelope.session.id);
+        if (sessionId) {
+            const entry = authPasswordTypeBySessionId.get(sessionId);
+            if (entry && entry.passwordType) {
+                entry.ts = Date.now();
+                return entry.passwordType;
+            }
+        }
+
+        return false;
+    };
+
     app.addHook('smtp:auth', (auth, session, next) => {
         if (auth && auth.passwordType) {
             authPasswordTypeBySessionId.set(session.id, { passwordType: auth.passwordType, ts: Date.now() });
@@ -315,10 +336,9 @@ module.exports.init = async app => {
             pwned: !!userData.passwordPwned
         };
 
-        const authEntry = authPasswordTypeBySessionId.get(envelope.sessionId);
-        if (authEntry && authEntry.passwordType) {
-            zilterRequestDataObj.passwordType = authEntry.passwordType;
-            authEntry.ts = Date.now();
+        const passwordType = getPasswordType(envelope, authPasswordTypeBySessionId);
+        if (passwordType) {
+            zilterRequestDataObj.passwordType = passwordType;
         }
         // Call Zilter with required params
         try {
