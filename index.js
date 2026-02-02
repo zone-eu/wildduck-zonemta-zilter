@@ -112,7 +112,7 @@ module.exports.init = async app => {
         sweepTimer.unref();
     }
 
-    const getPasswordType = (envelope, authPasswordTypeBySessionId) => {
+    const getPasswordType = envelope => {
         if (!envelope) return false;
 
         // WD path: passwordType is retrieved directly from envelope object
@@ -336,7 +336,7 @@ module.exports.init = async app => {
             pwned: !!userData.passwordPwned
         };
 
-        const passwordType = getPasswordType(envelope, authPasswordTypeBySessionId);
+        const passwordType = getPasswordType(envelope);
         if (passwordType) {
             zilterRequestDataObj.passwordType = passwordType;
         }
