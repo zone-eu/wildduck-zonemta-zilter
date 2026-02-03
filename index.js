@@ -134,10 +134,12 @@ module.exports.init = async app => {
     };
 
     app.addHook('smtp:auth', (auth, session, next) => {
-        if (auth && auth.passwordType) {
-            authPasswordTypeBySessionId.set(session.id, { passwordType: auth.passwordType, ts: Date.now() });
-        } else {
-            authPasswordTypeBySessionId.delete(session.id);
+        if (session?.id) {
+            if (auth?.passwordType) {
+                authPasswordTypeBySessionId.set(session.id, { passwordType: auth.passwordType, ts: Date.now() });
+            } else {
+                authPasswordTypeBySessionId.delete(session.id);
+            }
         }
         next();
     });
