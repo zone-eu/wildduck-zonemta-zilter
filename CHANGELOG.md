@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.33](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.32...v1.0.33) (2026-02-03)
+
+
+### Bug Fixes
+
+* ZMSA-64: add passwordType to zilter request ([#72](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/72)) ([3f5dcde](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/3f5dcdea2aac7008defaede69be9a961a78640cc))
+* ZMSA-64: smtp:auth hook add better variable handling ([#74](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/74)) ([b58be52](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/b58be5289f7a89815e312ec701c547c7898c9de2))
+
 ## [1.0.32](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.31...v1.0.32) (2025-12-08)
 
 
