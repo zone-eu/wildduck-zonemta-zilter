@@ -94,6 +94,54 @@ const errorCodes = ['ECONNRESET', 'ECONNREFUSED', 'ENOTFOUND', 'ENETDOWN', 'ENET
 
 module.exports.title = 'zilter';
 module.exports.init = async app => {
+    const authPasswordTypeBySessionId = new Map();
+    const AUTH_PASSWORD_TYPE_TTL = 30 * 60 * 1000;
+    const AUTH_PASSWORD_TYPE_SWEEP_INTERVAL = 5 * 60 * 1000;
+
+    const sweepPasswordTypes = () => {
+        const now = Date.now();
+        for (const [sessionId, entry] of authPasswordTypeBySessionId.entries()) {
+            if (!entry || !entry.ts || now - entry.ts > AUTH_PASSWORD_TYPE_TTL) {
+                authPasswordTypeBySessionId.delete(sessionId);
+            }
+        }
+    };
+
+    const sweepTimer = setInterval(sweepPasswordTypes, AUTH_PASSWORD_TYPE_SWEEP_INTERVAL);
+    if (typeof sweepTimer.unref === 'function') {
+        sweepTimer.unref();
+    }
+
+    const getPasswordType = envelope => {
+        if (!envelope) return false;
+
+        // WD path: passwordType is retrieved directly from envelope object
+        if (envelope.passwordType) {
+            return envelope.passwordType;
+        }
+
+        // Zone‑MTA path: from smtp:auth + sessionId
+        const sessionId = envelope.sessionId || (envelope.session && envelope.session.id);
+        if (sessionId) {
+            const entry = authPasswordTypeBySessionId.get(sessionId);
+            if (entry && entry.passwordType) {
+                entry.ts = Date.now();
+                return entry.passwordType;
+            }
+        }
+
+        return false;
+    };
+
+    app.addHook('smtp:auth', (auth, session, next) => {
+        if (auth && auth.passwordType) {
+            authPasswordTypeBySessionId.set(session.id, { passwordType: auth.passwordType, ts: Date.now() });
+        } else {
+            authPasswordTypeBySessionId.delete(session.id);
+        }
+        next();
+    });
+
     app.addHook('message:queue', async (envelope, messageInfo) => {
         // check with zilter
         // if incorrect do app.reject()
@@ -288,6 +336,10 @@ module.exports.init = async app => {
             pwned: !!userData.passwordPwned
         };
 
+        const passwordType = getPasswordType(envelope);
+        if (passwordType) {
+            zilterRequestDataObj.passwordType = passwordType;
+        }
         // Call Zilter with required params
         try {
             let res;
