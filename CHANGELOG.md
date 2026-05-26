@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.34](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.33...v1.0.34) (2026-05-26)
+
+
+### Bug Fixes
+
+* add comment ([#76](https://github.com/zone-eu/wildduck-zonemta-zilter/issues/76)) ([7a05369](https://github.com/zone-eu/wildduck-zonemta-zilter/commit/7a05369ebf98c6b433de7a93313b68352667bebd))
+
 ## [1.0.33](https://github.com/zone-eu/wildduck-zonemta-zilter/compare/v1.0.32...v1.0.33) (2026-02-03)
 
 
