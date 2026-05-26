@@ -121,6 +121,8 @@ const loggelfForEveryUser = (app, short_message, data) => {
 
 // Global agent - connection pool
 let agent;
+
+// Default agent
 let defaultAgent;
 const retryStatusCodes = [500, 502, 503, 504];
 const errorCodes = ['ECONNRESET', 'ECONNREFUSED', 'ENOTFOUND', 'ENETDOWN', 'ENETUNREACH', 'EHOSTDOWN', 'UND_ERR_SOCKET']; // Default undici
