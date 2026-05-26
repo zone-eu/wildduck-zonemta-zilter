@@ -1,10 +1,22 @@
 'use strict';
 
+/**
+ * @typedef {import('@zone-eu/types').ParsedAddress} ParsedAddress
+ * @typedef {import('@zone-eu/types').GelfMessage} GelfMessage
+ * @typedef {import('@zone-eu/types').ZoneMtaPluginTools} ZoneMtaPluginTools
+ * @typedef {string | ParsedAddress | false | null | undefined} AddressLike
+ * @typedef {ParsedAddress & {user: string, unameview: string, addrview: string, domain: string, addr: string}} NormalizedAddressParts
+ */
+
 const { request, RetryAgent, Agent } = require('undici');
 const { decodeWords } = require('libmime');
 const { toUnicode } = require('punycode');
 const { randomBytes } = require('node:crypto');
 
+/**
+ * @param {string} headerLine
+ * @returns {string | [string, string]}
+ */
 function decodeHeaderLineIntoKeyValuePair(headerLine) {
     let decodedHeaderStr;
     let headerSeparatorPos = headerLine.indexOf(':');
@@ -17,7 +29,7 @@ function decodeHeaderLineIntoKeyValuePair(headerLine) {
 
     try {
         decodedHeaderStr = decodeWords(headerValue);
-    } catch (err) {
+    } catch {
         // keep the value as is
         decodedHeaderStr = headerValue;
     }
@@ -25,6 +37,10 @@ function decodeHeaderLineIntoKeyValuePair(headerLine) {
     return [headerKey.trim(), decodedHeaderStr.trim()];
 }
 
+/**
+ * @param {string | false | null | undefined} domain
+ * @returns {string}
+ */
 const normalizeDomain = domain => {
     domain = (domain || '').toLowerCase().trim();
     try {
@@ -38,7 +54,18 @@ const normalizeDomain = domain => {
     return domain;
 };
 
+/**
+ * @type {{
+ *     (address: AddressLike, asObject: true): NormalizedAddressParts | '';
+ *     (address: AddressLike, asObject?: false): string;
+ *     (address: AddressLike, asObject?: boolean): string | NormalizedAddressParts;
+ * }}
+ */
 const normalizeAddress = (address, asObject) => {
+    if (address && typeof address === 'object') {
+        address = address.address;
+    }
+
     if (!address) {
         return address || '';
     }
@@ -56,6 +83,7 @@ const normalizeAddress = (address, asObject) => {
 
     if (asObject) {
         return {
+            address: addr,
             user,
             unameview,
             addrview,
@@ -66,6 +94,11 @@ const normalizeAddress = (address, asObject) => {
     return addr;
 };
 
+/**
+ * @param {ZoneMtaPluginTools} app
+ * @param {string} short_message
+ * @param {GelfMessage & {_rcpt?: AddressLike | AddressLike[]}} data
+ */
 const loggelfForEveryUser = (app, short_message, data) => {
     if (data._rcpt) {
         if (!Array.isArray(data._rcpt)) {
@@ -92,8 +125,12 @@ let defaultAgent;
 const retryStatusCodes = [500, 502, 503, 504];
 const errorCodes = ['ECONNRESET', 'ECONNREFUSED', 'ENOTFOUND', 'ENETDOWN', 'ENETUNREACH', 'EHOSTDOWN', 'UND_ERR_SOCKET']; // Default undici
 
+/** @type {import('@zone-eu/types').ZoneMtaPluginModule['title']} */
 module.exports.title = 'zilter';
+
+/** @type {import('@zone-eu/types').ZoneMtaPluginModule['init']} */
 module.exports.init = async app => {
+    /** @type {Map<string, {passwordType: string, ts: number}>} */
     const authPasswordTypeBySessionId = new Map();
     const AUTH_PASSWORD_TYPE_TTL = 30 * 60 * 1000;
     const AUTH_PASSWORD_TYPE_SWEEP_INTERVAL = 5 * 60 * 1000;
@@ -112,6 +149,10 @@ module.exports.init = async app => {
         sweepTimer.unref();
     }
 
+    /**
+     * @param {import('@zone-eu/types').Envelope} envelope
+     * @returns {string | false}
+     */
     const getPasswordType = envelope => {
         if (!envelope) return false;
 
@@ -133,7 +174,8 @@ module.exports.init = async app => {
         return false;
     };
 
-    app.addHook('smtp:auth', (auth, session, next) => {
+    /** @type {import('@zone-eu/types').ZoneMtaHookHandler<'smtp:auth'>} */
+    const onSmtpAuth = (auth, session, next) => {
         if (session?.id) {
             if (auth?.passwordType) {
                 authPasswordTypeBySessionId.set(session.id, { passwordType: auth.passwordType, ts: Date.now() });
@@ -142,9 +184,12 @@ module.exports.init = async app => {
             }
         }
         next();
-    });
+    };
 
-    app.addHook('message:queue', async (envelope, messageInfo) => {
+    app.addHook('smtp:auth', onSmtpAuth);
+
+    /** @type {import('@zone-eu/types').ZoneMtaMessageQueueHookHandler} */
+    const onMessageQueue = async (envelope, messageInfo) => {
         // check with zilter
         // if incorrect do app.reject()
 
@@ -240,7 +285,7 @@ module.exports.init = async app => {
         let passEmail = true; // by default pass email
         let isTempFail = true; // by default tempfail
 
-        let userData = {};
+        let userData;
 
         try {
             if (authenticatedUser.includes('@')) {
@@ -535,5 +580,7 @@ module.exports.init = async app => {
         }
 
         return;
-    });
+    };
+
+    app.addHook('message:queue', onMessageQueue);
 };
