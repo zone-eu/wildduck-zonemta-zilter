@@ -1,11 +1,23 @@
+//@ts-check
 'use strict';
 
 /**
+ * @typedef {import('@zone-eu/types').AnyRecord} AnyRecord
  * @typedef {import('@zone-eu/types').ParsedAddress} ParsedAddress
+ * @typedef {import('@zone-eu/types').Envelope} Envelope
  * @typedef {import('@zone-eu/types').GelfMessage} GelfMessage
+ * @typedef {import('@zone-eu/types').MessageInfo} MessageInfo
+ * @typedef {import('@zone-eu/types').MongoDatabase} MongoDatabase
+ * @typedef {import('@zone-eu/types').UserData} UserData
  * @typedef {import('@zone-eu/types').ZoneMtaPluginTools} ZoneMtaPluginTools
  * @typedef {string | ParsedAddress | false | null | undefined} AddressLike
  * @typedef {ParsedAddress & {user: string, unameview: string, addrview: string, domain: string, addr: string}} NormalizedAddressParts
+ * @typedef {{userName?: string, apiKey?: string, serverHost?: string, zilterUrl?: string, zilterFallbackUrl?: string, logIncomingData?: boolean, subjectMaxLength?: number, keepAliveTimeout?: number, keepAliveMaxTimeout?: number, maxRetries?: number, minRetryTimeout?: number, maxRetryTimeout?: number, timeoutFactor?: number}} ZilterConfig
+ * @typedef {AnyRecord & {domain: string}} DomainAliasData
+ * @typedef {AnyRecord & {user: {toString(): string}}} AddressData
+ * @typedef {AnyRecord & {REJECT_REASON?: string}} ZilterSymbols
+ * @typedef {AnyRecord & {action?: string, symbols?: ZilterSymbols}} ZilterResponse
+ * @typedef {AnyRecord & {headers: Array<{name: string, value: string}>, passwordType?: string}} ZilterRequestData
  */
 
 const { request, RetryAgent, Agent } = require('undici');
@@ -15,13 +27,13 @@ const { randomBytes } = require('node:crypto');
 
 /**
  * @param {string} headerLine
- * @returns {string | [string, string]}
+ * @returns {[string, string]}
  */
 function decodeHeaderLineIntoKeyValuePair(headerLine) {
     let decodedHeaderStr;
     let headerSeparatorPos = headerLine.indexOf(':');
     if (headerSeparatorPos < 0) {
-        return headerLine;
+        return [headerLine.trim(), ''];
     }
 
     let headerKey = headerLine.substring(0, headerSeparatorPos);
@@ -55,11 +67,9 @@ const normalizeDomain = domain => {
 };
 
 /**
- * @type {{
- *     (address: AddressLike, asObject: true): NormalizedAddressParts | '';
- *     (address: AddressLike, asObject?: false): string;
- *     (address: AddressLike, asObject?: boolean): string | NormalizedAddressParts;
- * }}
+ * @param {AddressLike} address
+ * @param {boolean} [asObject]
+ * @returns {string | NormalizedAddressParts}
  */
 const normalizeAddress = (address, asObject) => {
     if (address && typeof address === 'object') {
@@ -71,7 +81,7 @@ const normalizeAddress = (address, asObject) => {
     }
 
     const user = address
-        .substr(0, address.lastIndexOf('@'))
+        .substring(0, address.lastIndexOf('@'))
         .normalize('NFC')
         .toLowerCase()
         .replace(/\+[^@]*$/, '')
@@ -95,6 +105,30 @@ const normalizeAddress = (address, asObject) => {
 };
 
 /**
+ * @param {MessageInfo | string | false | null | undefined} messageInfo
+ * @returns {string}
+ */
+const formatMessageInfo = messageInfo => {
+    if (messageInfo && typeof messageInfo === 'object' && typeof messageInfo.format === 'function') {
+        return messageInfo.format().trim();
+    }
+
+    return (messageInfo || '').toString().trim();
+};
+
+/**
+ * @param {unknown} err
+ * @returns {string}
+ */
+const formatError = err => {
+    if (err instanceof Error) {
+        return err.message;
+    }
+
+    return String(err);
+};
+
+/**
  * @param {ZoneMtaPluginTools} app
  * @param {string} short_message
  * @param {GelfMessage & {_rcpt?: AddressLike | AddressLike[]}} data
@@ -108,7 +142,7 @@ const loggelfForEveryUser = (app, short_message, data) => {
         data._rcpt = [''];
     }
 
-    const cleanRcpt = data._rcpt.map(rcpt => normalizeAddress(rcpt, true).addrview);
+    const cleanRcpt = data._rcpt.map(rcpt => /** @type {NormalizedAddressParts} */ (normalizeAddress(rcpt, true)).addrview);
     data._rcpt.forEach((rcpt, i) => {
         app.loggelf({
             short_message,
@@ -120,9 +154,11 @@ const loggelfForEveryUser = (app, short_message, data) => {
 };
 
 // Global agent - connection pool
+/** @type {import('undici').RetryAgent | undefined} */
 let agent;
 
 // Default agent
+/** @type {import('undici').Agent | undefined} */
 let defaultAgent;
 const retryStatusCodes = [500, 502, 503, 504];
 const errorCodes = ['ECONNRESET', 'ECONNREFUSED', 'ENOTFOUND', 'ENETDOWN', 'ENETUNREACH', 'EHOSTDOWN', 'UND_ERR_SOCKET']; // Default undici
@@ -152,7 +188,7 @@ module.exports.init = async app => {
     }
 
     /**
-     * @param {import('@zone-eu/types').Envelope} envelope
+     * @param {Envelope} envelope
      * @returns {string | false}
      */
     const getPasswordType = envelope => {
@@ -196,10 +232,12 @@ module.exports.init = async app => {
         // if incorrect do app.reject()
 
         const SUBJECT_MAX_ALLOWED_LENGTH = 16000;
-        const { userName, apiKey, serverHost, zilterUrl, logIncomingData } = app.config;
-        let { zilterFallbackUrl } = app.config;
+        const config = /** @type {ZilterConfig} */ (app.config === true ? {} : app.config);
+        const usersDb = /** @type {MongoDatabase} */ (app.db.users);
+        const { userName, apiKey, serverHost, zilterUrl, logIncomingData } = config;
+        let { zilterFallbackUrl } = config;
 
-        let subjectMaxLength = app.config.subjectMaxLength;
+        let subjectMaxLength = config.subjectMaxLength;
 
         if (!subjectMaxLength || subjectMaxLength > SUBJECT_MAX_ALLOWED_LENGTH) {
             subjectMaxLength = SUBJECT_MAX_ALLOWED_LENGTH;
@@ -245,7 +283,7 @@ module.exports.init = async app => {
 
         if (!defaultAgent) {
             // separate agent
-            const { keepAliveTimeout, keepAliveMaxTimeout } = app.config;
+            const { keepAliveTimeout, keepAliveMaxTimeout } = config;
             defaultAgent = new Agent({
                 keepAliveTimeout: keepAliveTimeout || 5000,
                 keepAliveMaxTimeout: keepAliveMaxTimeout || 600e3,
@@ -256,7 +294,7 @@ module.exports.init = async app => {
 
         if (!agent) {
             // if agent has not yet been initialize then create one
-            const { keepAliveTimeout, keepAliveMaxTimeout, maxRetries, minRetryTimeout, maxRetryTimeout, timeoutFactor } = app.config;
+            const { keepAliveTimeout, keepAliveMaxTimeout, maxRetries, minRetryTimeout, maxRetryTimeout, timeoutFactor } = config;
             agent = new RetryAgent(
                 new Agent({
                     keepAliveTimeout: keepAliveTimeout || 5000,
@@ -287,6 +325,7 @@ module.exports.init = async app => {
         let passEmail = true; // by default pass email
         let isTempFail = true; // by default tempfail
 
+        /** @type {UserData} */
         let userData;
 
         try {
@@ -303,11 +342,11 @@ module.exports.init = async app => {
                 // SMTP email aadress login
                 // seems to be an email, no need to resolve, straight acquire the user id from addresses
                 // normalize address
-                let addrObj = normalizeAddress(authenticatedUser, true);
+                let addrObj = /** @type {NormalizedAddressParts} */ (normalizeAddress(authenticatedUser, true));
                 authenticatedUser = addrObj.addr;
 
                 // check for alias
-                let aliasData = await app.db.users.collection('domainaliases').findOne({ alias: addrObj.domain });
+                let aliasData = /** @type {DomainAliasData | null} */ (await usersDb.collection('domainaliases').findOne({ alias: addrObj.domain }));
 
                 let addrview = addrObj.addrview; // default to addrview query as-is without alias
 
@@ -317,13 +356,13 @@ module.exports.init = async app => {
                     addrview = addrObj.unameview + '@' + aliasDomain; // set new query addrview
                 }
 
-                const addressData = await app.db.users.collection('addresses').findOne({ addrview });
+                const addressData = /** @type {AddressData} */ (/** @type {unknown} */ (await usersDb.collection('addresses').findOne({ addrview })));
                 sender = addressData.user.toString();
-                userData = await app.db.users.collection('users').findOne({ _id: addressData.user });
+                userData = /** @type {UserData} */ (/** @type {unknown} */ (await usersDb.collection('users').findOne({ _id: addressData.user })));
             } else {
                 // current user authenticated via the username, resolve to email
                 authenticatedUser = authenticatedUser.replace(/\./g, '').normalize('NFC').toLowerCase().trim(); // Normalize username to unameview
-                userData = await app.db.users.collection('users').findOne({ unameview: authenticatedUser });
+                userData = /** @type {UserData} */ (/** @type {unknown} */ (await usersDb.collection('users').findOne({ unameview: authenticatedUser })));
                 authenticatedUserAddress = userData.address; // main address of the user
                 sender = userData._id.toString(); // ID of the user
             }
@@ -333,7 +372,7 @@ module.exports.init = async app => {
                 _plugin_status: 'error',
                 _error: 'DB error. Check DB connection, or collection names, or filter params.',
                 _authenticated_user: authenticatedUser,
-                _err_json: err.toString()
+                _err_json: formatError(err)
             });
             return;
         }
@@ -341,10 +380,12 @@ module.exports.init = async app => {
         // construct Authorization header
         const userBase64 = Buffer.from(`${userName}:${apiKey}`).toString('base64'); // authorization header
 
-        const messageSize = envelope.headers.build().length + envelope.bodySize; // RFC822 size (size of Headers + Body)
+        const messageSize = envelope.headers.build().length + (envelope.bodySize || 0); // RFC822 size (size of Headers + Body)
 
+        /** @type {Array<{name: string, value: string}>} */
         const messageHeadersList = [];
 
+        /** @type {Record<string, string>} */
         const allHeadersParsed = {};
 
         // Change headers to the format that Zilter will accept
@@ -369,8 +410,10 @@ module.exports.init = async app => {
         subject = subject.substring(0, subjectMaxLength);
         const messageIdHeaderVal = allHeadersParsed['Message-ID']?.replace('<', '').replace('>', '');
 
+        /** @type {ZilterResponse | undefined} */
         let zilterResponse;
 
+        /** @type {ZilterRequestData} */
         const zilterRequestDataObj = {
             host: originhost, // Originhost is a string that includes [] (array as a string literal)
             'zilter-id': zilterId, // Random ID
@@ -426,14 +469,15 @@ module.exports.init = async app => {
                 }
             }
 
-            const resBodyJson = await res.body.json();
+            const resBodyJson = /** @type {ZilterResponse} */ (await res.body.json());
 
             const debugJson = { ...resBodyJson };
 
             zilterResponse = resBodyJson;
 
-            if (debugJson.symbols) {
-                ['SENDER', 'SENDER_GROUP', 'WEBHOOK'].forEach(sym => delete debugJson.symbols[sym]);
+            const debugSymbols = debugJson.symbols;
+            if (debugSymbols) {
+                ['SENDER', 'SENDER_GROUP', 'WEBHOOK'].forEach(sym => delete debugSymbols[sym]);
             }
 
             ['sender', 'action', 'zilter-id', 'client'].forEach(el => delete debugJson[el]);
@@ -459,16 +503,11 @@ module.exports.init = async app => {
                 });
 
                 // Log zilter unauthorized to console
-                const id = typeof envelope === 'object' ? envelope.id : envelope;
-
-                let messageInfoStr = messageInfo;
-                if (messageInfo && typeof messageInfo.format === 'function') {
-                    messageInfoStr = messageInfo.format();
-                }
-                messageInfoStr = (messageInfoStr || '').toString().trim();
+                const id = envelope.id;
+                const messageInfoStr = formatMessageInfo(messageInfo);
 
                 const msg = '%s NOQUEUE [unauthorized]' + (messageInfoStr ? ' (' + messageInfoStr + ')' : '');
-                app.logger.info(app.options.title, msg, id);
+                app.logger.info(app.options.title || 'zonemta-zilter', msg, id);
             }
 
             if (resBodyJson.action && resBodyJson.action !== 'accept') {
@@ -498,19 +537,14 @@ module.exports.init = async app => {
                 });
 
                 // Log zilter banned to console
-                const id = typeof envelope === 'object' ? envelope.id : envelope;
-
-                let messageInfoStr = messageInfo;
-                if (messageInfo && typeof messageInfo.format === 'function') {
-                    messageInfoStr = messageInfo.format();
-                }
-                messageInfoStr = (messageInfoStr || '').toString().trim();
+                const id = envelope.id;
+                const messageInfoStr = formatMessageInfo(messageInfo);
 
                 const msg =
                     '%s NOQUEUE [banned]' +
                     (messageInfoStr ? ' (' + messageInfoStr + ')' : '') +
                     (resBodyJson.action ? ` (passed=N action=${resBodyJson.action})` : ` (passed=N)`);
-                app.logger.info(app.options.title, msg, id);
+                app.logger.info(app.options.title || 'zonemta-zilter', msg, id);
             } else if (resBodyJson.action && resBodyJson.action === 'accept') {
                 // accepted, so not a tempfail
                 isTempFail = false;
@@ -533,19 +567,14 @@ module.exports.init = async app => {
                 });
 
                 // Log Zilter pass check to console
-                const id = typeof envelope === 'object' ? envelope.id : envelope;
-
-                let messageInfoStr = messageInfo;
-                if (messageInfo && typeof messageInfo.format === 'function') {
-                    messageInfoStr = messageInfo.format();
-                }
-                messageInfoStr = (messageInfoStr || '').toString().trim();
+                const id = envelope.id;
+                const messageInfoStr = formatMessageInfo(messageInfo);
 
                 const msg =
                     '%s QUEUE [passed]' +
                     (messageInfoStr ? ' (' + messageInfoStr + ')' : '') +
                     (resBodyJson.action ? ` (passed=Y action=${resBodyJson.action})` : ` (passed=Y)`);
-                app.logger.info(app.options.title, msg, id);
+                app.logger.info(app.options.title || 'zonemta-zilter', msg, id);
             }
         } catch (err) {
             // error, default to tempfail
@@ -561,7 +590,7 @@ module.exports.init = async app => {
                 _message_id: messageIdHeaderVal,
                 _subject: subject,
                 level: 5,
-                _zilter_error: err.message,
+                _zilter_error: formatError(err),
                 _ip: envelope.origin,
                 _pwned: !!userData.passwordPwned
             });
